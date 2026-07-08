@@ -42,7 +42,6 @@
         #video-grid { flex: 1; display: flex; padding: 20px; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; }
         .video-card { position: relative; background: #1f2833; border-radius: 16px; overflow: hidden; border: 2px solid #2f3e46; min-width: 200px; flex: 1 1 40%; max-width: 600px; height: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, border-color 0.15s, box-shadow 0.15s; }
         
-        /* === افکت صحبت کردن === */
         .video-card.speaking { border-color: var(--success); box-shadow: 0 0 20px rgba(46, 196, 182, 0.6), 0 8px 24px rgba(0,0,0,0.3); }
 
         .video-card.fullscreen {
@@ -73,6 +72,10 @@
         .chat-input-area input { margin-bottom: 0; padding: 12px; text-align: right; font-size: 0.9rem; width: auto; flex: 1; }
         .btn-send { background: var(--primary); color: #0b0c10; border: none; padding: 0 16px; border-radius: 12px; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
         .chat-close-btn { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 1rem; }
+        #chat-status { font-size: 0.65rem; margin-right: auto; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+        #chat-status.connecting { color: #f0ad4e; background: rgba(240,173,78,0.15); }
+        #chat-status.connected { color: var(--success); background: rgba(46,196,182,0.15); }
+        #chat-status.error { color: var(--danger); background: rgba(255,74,90,0.15); }
 
         @media (max-width: 1024px) {
             .controls-bar { padding: 0 70px; gap: 10px; }
@@ -213,6 +216,7 @@
         <div class="chat-sidebar hidden" id="chat-box">
             <div class="chat-header">
                 <i class="fas fa-comment-alt"></i> چت متنی اتاق
+                <span id="chat-status" class="connecting">در حال اتصال...</span>
                 <button class="chat-close-btn" onclick="toggleChatSidebar()"><i class="fas fa-times"></i></button>
             </div>
             <div class="chat-messages" id="chat-messages">
@@ -234,7 +238,8 @@
     let myName;
     let isScreenSharing = false;
     let screenStream;
-    let dataConnection = null; 
+    let chatDataConn = null;
+    let chatReady = false;
     const connectedPeers = {};
     let audioCtx = null;
     const speakingDetectors = {};
@@ -245,14 +250,27 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' },
+                { urls: 'stun:stun.services.mozilla.com' },
                 {
-                    urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
+                    urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 },
-                { urls: ['turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' }
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
             ],
-            iceTransportPolicy: 'all'
+            iceCandidatePoolSize: 10
         }
     };
 
@@ -266,14 +284,20 @@
         }
     }
 
-function copyRoomLink() {
-    const finalInviteLink = window.location.origin + window.location.pathname + '?invite=' + myId;
-    navigator.clipboard.writeText(finalInviteLink).then(() => { 
-        alert('لینک دعوت اختصاصی کپی شد:\n' + finalInviteLink); 
-    });
-}
+    function copyRoomLink() {
+        const finalInviteLink = window.location.origin + window.location.pathname + '?invite=' + myId;
+        navigator.clipboard.writeText(finalInviteLink).then(() => { 
+            alert('لینک دعوت اختصاصی کپی شد:\n' + finalInviteLink); 
+        });
+    }
 
-    // === تشخیص صحبت کردن با Web Audio API ===
+    function updateChatStatus(state, text) {
+        const el = document.getElementById('chat-status');
+        if (!el) return;
+        el.className = state;
+        el.innerText = text;
+    }
+
     function setupSpeakingDetector(id, stream) {
         if (!stream || !stream.getAudioTracks().length) return;
 
@@ -315,6 +339,46 @@ function copyRoomLink() {
         speakingDetectors[id] = { stop: () => { active = false; source.disconnect(); } };
     }
 
+    function bindDataConnEvents(conn) {
+        conn.on('open', () => {
+            chatReady = true;
+            updateChatStatus('connected', 'متصل');
+        });
+
+        conn.on('close', () => {
+            chatReady = false;
+            chatDataConn = null;
+            updateChatStatus('error', 'قطع شد');
+        });
+
+        conn.on('error', (err) => {
+            console.error('[Chat] DataConnection error:', err.type, err);
+            chatReady = false;
+            updateChatStatus('error', 'خطا در اتصال');
+        });
+
+        conn.on('data', (data) => {
+            if (data && data.type === 'chat') {
+                appendMessage(data.sender, data.message, 'remote');
+            }
+        });
+    }
+
+    function initDataConnection(peerId) {
+        if (chatDataConn && !chatDataConn.destroyed) return;
+
+        chatDataConn = peer.connect(peerId, { reliable: true, serialization: 'json' });
+        bindDataConnEvents(chatDataConn);
+
+        updateChatStatus('connecting', 'در حال اتصال...');
+
+        setTimeout(() => {
+            if (!chatReady) {
+                updateChatStatus('error', 'اتصال چت طول کشید...');
+            }
+        }, 8000);
+    }
+
     async function initPeer() {
         myName = document.getElementById('username-input').value.trim() || "کاربر ناشناس";
         targetPeerId = document.getElementById('target-peer-id').value || null;
@@ -332,7 +396,9 @@ function copyRoomLink() {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    autoGainControl: true,
+                    sampleRate: 48000,
+                    channelCount: 1
                 },
                 video: wantCam ? { deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined } : false
             });
@@ -362,8 +428,8 @@ function copyRoomLink() {
                 if(targetPeerId) {
                     setTimeout(() => { 
                         startCall(targetPeerId); 
-                        setupDataConnection(targetPeerId); 
-                    }, 1000);
+                        initDataConnection(targetPeerId);
+                    }, 1200);
                 }
             });
 
@@ -375,12 +441,32 @@ function copyRoomLink() {
                     setupSpeakingDetector(call.peer, remoteStream);
                 });
                 call.on('close', () => { removeVideoTrack(call.peer); });
+                call.on('error', (err) => { console.error('[Call] error:', err); });
                 connectedPeers[call.peer] = call;
             });
 
             peer.on('connection', (conn) => {
-                dataConnection = conn;
-                setupChatEvents();
+                chatDataConn = conn;
+                bindDataConnEvents(conn);
+                updateChatStatus('connecting', 'در حال اتصال...');
+            });
+
+            peer.on('error', (err) => {
+                console.error('[Peer] error:', err.type, err);
+                if (err.type === 'peer-unavailable') {
+                    alert('کاربر مورد نظر آنلاین نیست یا شناسه نامعتبر است.');
+                } else if (err.type === 'network' || err.type === 'server-error') {
+                    alert('خطای شبکه یا سرور. صفحه را رفرش کنید.');
+                } else if (err.type === 'unavailable-id') {
+                    alert('این شناسه قبلا گرفته شده. صفحه را رفرش کنید.');
+                    localStorage.removeItem('mahdi_call_peer_id');
+                }
+            });
+
+            peer.on('disconnected', () => {
+                updateChatStatus('error', 'قطع از سرور');
+                chatReady = false;
+                if (!peer.destroyed) peer.reconnect();
             });
 
         } catch (err) {
@@ -391,26 +477,18 @@ function copyRoomLink() {
 
     function startCall(peerId) {
         const call = peer.call(peerId, myStream);
+        if (!call) {
+            alert('خطا: تماس برقرار نشد.');
+            return;
+        }
         call.on('stream', (remoteStream) => {
             const peerName = extractNameFromId(peerId);
             addVideoTrack(peerId, remoteStream, peerName, false);
             setupSpeakingDetector(peerId, remoteStream);
         });
         call.on('close', () => { removeVideoTrack(peerId); });
+        call.on('error', (err) => { console.error('[Call] error:', err); });
         connectedPeers[peerId] = call;
-    }
-
-    function setupDataConnection(peerId) {
-        dataConnection = peer.connect(peerId);
-        setupChatEvents();
-    }
-
-    function setupChatEvents() {
-        dataConnection.on('data', (data) => {
-            if(data.type === 'chat') {
-                appendMessage(data.sender, data.message, 'remote');
-            }
-        });
     }
 
     function sendTextMessage() {
@@ -418,8 +496,8 @@ function copyRoomLink() {
         const msg = input.value.trim();
         if(!msg) return;
 
-        if(dataConnection && dataConnection.open) {
-            dataConnection.send({
+        if(chatDataConn && !chatDataConn.destroyed && chatReady) {
+            chatDataConn.send({
                 type: 'chat',
                 sender: myName,
                 message: msg
@@ -427,7 +505,7 @@ function copyRoomLink() {
             appendMessage(myName, msg, 'me');
             input.value = '';
         } else {
-            alert("خطا: هنوز رفیقت به کانال متنی متصل نشده یا ارتباط قطع است.");
+            alert("کانال چت هنوز آماده نیست. چند ثانیه دیگر امتحان کنید.");
         }
     }
 
@@ -510,54 +588,41 @@ function copyRoomLink() {
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 const screenTrack = screenStream.getVideoTracks()[0];
+
                 const localVid = document.querySelector('#card-local video');
                 if(localVid) localVid.srcObject = screenStream;
-                
                 document.getElementById('card-local').style.transform = "none";
 
-                const combinedStream = new MediaStream();
-                combinedStream.addTrack(screenTrack); 
-                
-                if(myStream.getAudioTracks().length > 0) {
-                    combinedStream.addTrack(myStream.getAudioTracks()[0]); 
-                }
-
                 Object.entries(connectedPeers).forEach(([peerId, call]) => {
-                    call.close(); 
-                    const newCall = peer.call(peerId, combinedStream); 
-                    newCall.on('stream', (remoteStream) => {
-                        const peerName = extractNameFromId(peerId);
-                        addVideoTrack(peerId, remoteStream, peerName + " (اشتراک صفحه)", false);
-                    });
-                    newCall.on('close', () => { removeVideoTrack(peerId); });
-                    connectedPeers[peerId] = newCall; 
+                    const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(screenTrack);
                 });
 
-                isScreenSharing = true; btn.classList.add('active');
+                isScreenSharing = true;
+                btn.classList.add('active');
                 screenTrack.onended = stopScreenSharing;
             } catch (e) { console.error(e); }
-        } else { stopScreenSharing(); }
+        } else { 
+            stopScreenSharing(); 
+        }
     }
 
     function stopScreenSharing() {
         if(!isScreenSharing) return;
         screenStream.getTracks().forEach(t => t.stop());
+
+        const cameraTrack = myStream.getVideoTracks()[0];
+        if (cameraTrack) {
+            Object.entries(connectedPeers).forEach(([peerId, call]) => {
+                const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(cameraTrack);
+            });
+        }
+
         const localVid = document.querySelector('#card-local video');
-        if(localVid) localVid.srcObject = myStream; 
-        
+        if(localVid) localVid.srcObject = myStream;
         document.getElementById('card-local').classList.remove('fullscreen');
 
-        Object.entries(connectedPeers).forEach(([peerId, call]) => {
-            call.close();
-            const newCall = peer.call(peerId, myStream); 
-            newCall.on('stream', (remoteStream) => {
-                const peerName = extractNameFromId(peerId);
-                addVideoTrack(peerId, remoteStream, peerName, false);
-            });
-            newCall.on('close', () => { removeVideoTrack(peerId); });
-            connectedPeers[peerId] = newCall;
-        });
-        
         isScreenSharing = false; 
         document.getElementById('btn-screen').classList.remove('active');
     }
