@@ -13,14 +13,15 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; outline: none; }
         body { background-color: var(--bg); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
 
-        #settings { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11,12,16,0.98); z-index: 300; display: flex; justify-content: center; align-items: center; }
-        .card { background: var(--surface); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; border: 1px solid #2f3e46; }
-        h2 { margin-bottom: 15px; font-weight: 700; color: var(--primary); }
+        /* ===================== صفحه تنظیمات ===================== */
+        #settings { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11,12,16,0.98); z-index: 300; display: flex; justify-content: center; align-items: center; padding: 15px; overflow-y: auto; }
+        .card { background: var(--surface); padding: 30px; border-radius: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; border: 1px solid #2f3e46; }
+        h2 { margin-bottom: 15px; font-weight: 700; color: var(--primary); font-size: 1.3rem; }
         p { color: #aaa; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
         input, select { width: 100%; padding: 15px; background: #0b0c10; border: 1px solid #2f3e46; color: white; border-radius: 12px; margin-bottom: 15px; font-size: 1rem; text-align: center; }
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 12px; }
         
-        .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
@@ -30,17 +31,18 @@
         .btn-start { width: 100%; padding: 16px; background: var(--primary); color: #0b0c10; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(69, 243, 255, 0.3); }
         #status-msg { text-align: center; color: #45f3ff; font-size: 0.85rem; margin-top: 15px; font-weight: bold; }
 
+        /* ===================== اپ اصلی ===================== */
         #app { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; }
-        .controls-bar { height: var(--header-h); background: rgba(31, 40, 51, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; gap: 15px; z-index: 100; border-bottom: 1px solid #2f3e46; position: relative; }
-        .room-badge { position: absolute; right: 20px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; color: #fff; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+        .controls-bar { height: var(--header-h); background: rgba(31, 40, 51, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; gap: 15px; z-index: 100; border-bottom: 1px solid #2f3e46; position: relative; padding: 0 80px 0 80px; }
+        .room-badge { position: absolute; right: 20px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; color: #fff; cursor: pointer; display: flex; gap: 8px; align-items: center; white-space: nowrap; }
         
-        .ctrl-btn { width: 48px; height: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .ctrl-btn { width: 48px; height: 48px; min-width: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
         .ctrl-btn.off { background: var(--danger); }
         .ctrl-btn.active { background: var(--success); color: white; }
 
         .main-container { flex: 1; display: flex; width: 100%; overflow: hidden; position: relative; }
         #video-grid { flex: 1; display: flex; padding: 20px; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; }
-        .video-card { position: relative; background: #1f2833; border-radius: 16px; overflow: hidden; border: 2px solid #2f3e46; min-width: 260px; flex: 1 1 40%; max-width: 600px; height: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, all 0.3s ease-in-out; }
+        .video-card { position: relative; background: #1f2833; border-radius: 16px; overflow: hidden; border: 2px solid #2f3e46; min-width: 200px; flex: 1 1 40%; max-width: 600px; height: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, all 0.3s ease-in-out; }
         
         .video-card.fullscreen {
             position: absolute;
@@ -59,7 +61,8 @@
 
         .name-tag { position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: white; z-index: 10; pointer-events: none; }
 
-        .chat-sidebar { width: 320px; background: #1f2833; border-left: 1px solid #2f3e46; display: flex; flex-direction: column; transition: 0.3s; }
+        /* ===================== سایدبار چت ===================== */
+        .chat-sidebar { width: 320px; background: #1f2833; border-left: 1px solid #2f3e46; display: flex; flex-direction: column; transition: 0.3s; flex-shrink: 0; }
         .chat-header { padding: 15px; border-bottom: 1px solid #2f3e46; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 8px; }
         .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .msg-bubble { padding: 10px 14px; border-radius: 12px; max-width: 85%; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
@@ -68,11 +71,125 @@
         .msg-meta { font-size: 0.7rem; margin-bottom: 3px; display: block; opacity: 0.7; }
         .chat-input-area { padding: 12px; border-top: 1px solid #2f3e46; display: flex; gap: 8px; background: rgba(0,0,0,0.2); }
         .chat-input-area input { margin-bottom: 0; padding: 12px; text-align: right; font-size: 0.9rem; }
-        .btn-send { background: var(--primary); color: #0b0c10; border: none; padding: 0 16px; border-radius: 12px; cursor: pointer; font-size: 1rem; }
+        .btn-send { background: var(--primary); color: #0b0c10; border: none; padding: 0 16px; border-radius: 12px; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
 
+        /* ===================== تبلت ===================== */
+        @media (max-width: 1024px) {
+            .controls-bar { padding: 0 70px; gap: 10px; }
+            .ctrl-btn { width: 44px; height: 44px; min-width: 44px; font-size: 1.1rem; }
+            .chat-sidebar { width: 280px; }
+        }
+
+        /* ===================== موبایل ===================== */
         @media (max-width: 768px) {
+            :root { --header-h: 60px; }
+
+            /* صفحه تنظیمات */
+            #settings { padding: 10px; }
+            .card { padding: 22px 20px; border-radius: 18px; }
+            h2 { font-size: 1.15rem; }
+            input, select { padding: 13px; font-size: 0.95rem; }
+            .row { padding: 10px 13px; font-size: 0.9rem; }
+            .btn-start { padding: 14px; font-size: 1rem; }
+
+            /* نوار کنترل */
+            .controls-bar { 
+                padding: 0 8px; 
+                gap: 6px; 
+                justify-content: center;
+            }
+            .ctrl-btn { width: 40px; height: 40px; min-width: 40px; font-size: 1rem; }
+            .room-badge { 
+                font-size: 0.72rem; 
+                padding: 6px 10px; 
+                right: 8px;
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* ویدیو */
+            #video-grid { padding: 10px; gap: 10px; }
+            .video-card { 
+                min-width: unset; 
+                flex: 1 1 100%; 
+                max-width: 100%; 
+                height: 100%;
+                min-height: 200px;
+                border-radius: 12px;
+            }
+
+            /* سایدبار چت به‌صورت overlay در موبایل */
             .main-container { flex-direction: column; }
-            .chat-sidebar { width: 100%; height: 250px; border-left: none; border-top: 1px solid #2f3e46; }
+            .chat-sidebar {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 250;
+                border-left: none;
+                border-top: none;
+            }
+            .chat-sidebar.hidden { 
+                transform: translateX(100%);
+                pointer-events: none;
+            }
+            .chat-header { 
+                padding: 13px 15px; 
+                font-size: 0.95rem;
+                position: relative;
+            }
+            .chat-close-btn {
+                position: absolute;
+                left: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: rgba(255,255,255,0.1);
+                border: none;
+                color: white;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1rem;
+            }
+            .msg-bubble { font-size: 0.85rem; max-width: 90%; }
+            .chat-input-area { padding: 10px; }
+            .chat-input-area input { padding: 11px; font-size: 0.85rem; }
+            .btn-send { padding: 0 14px; }
+            .name-tag { font-size: 0.75rem; padding: 5px 10px; bottom: 8px; right: 8px; }
+        }
+
+        /* ===================== موبایل کوچک ===================== */
+        @media (max-width: 380px) {
+            .controls-bar { gap: 4px; padding: 0 4px; }
+            .ctrl-btn { width: 36px; height: 36px; min-width: 36px; font-size: 0.9rem; }
+            .room-badge { 
+                font-size: 0.65rem; 
+                padding: 5px 8px; 
+                max-width: 100px;
+            }
+            .card { padding: 18px 15px; }
+        }
+
+        /* ===================== لندسکیپ موبایل ===================== */
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+            :root { --header-h: 50px; }
+            .main-container { flex-direction: row; }
+            .chat-sidebar {
+                position: relative;
+                width: 240px;
+                height: 100%;
+                transform: none;
+                z-index: 100;
+            }
+            .chat-sidebar.hidden { transform: none; pointer-events: auto; }
+            .video-card { min-height: 150px; height: 100%; flex: 1 1 50%; }
+            #video-grid { padding: 8px; }
         }
     </style>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -89,7 +206,7 @@
         <input type="hidden" id="target-peer-id">
 
         <div class="row">
-            <span>🎙️ وضعیت میکروفن</span>
+            <span>🎙️ وضعیت میکروفون</span>
             <label class="switch"><input type="checkbox" id="opt-mic" checked><span class="slider"></span></label>
         </div>
 
@@ -121,9 +238,10 @@
     <div class="main-container">
         <div id="video-grid"></div>
 
-        <div class="chat-sidebar" id="chat-box">
+        <div class="chat-sidebar hidden" id="chat-box">
             <div class="chat-header">
                 <i class="fas fa-comment-alt"></i> چت متنی اتاق
+                <button class="chat-close-btn" onclick="toggleChatSidebar()"><i class="fas fa-times"></i></button>
             </div>
             <div class="chat-messages" id="chat-messages">
                 <div style="color: #666; text-align: center; font-size: 0.8rem; margin-top: 20px;">پیام‌ها کاملاً مستقیم ارسال می‌شوند.</div>
@@ -196,7 +314,7 @@ function copyRoomLink() {
             const wantMic = document.getElementById('opt-mic').checked;
             const selectedCameraId = document.getElementById('video-source').value;
 
-            // --- تغییر اصلی: استفاده از فیلترهای استاندارد خود مرورگر برای جلوگیری از قطعی صدا ---
+            // --- تغییر اصلی: استفاده از فیلترهای استاندارد خود مرورگر برای جلوگیری از قطعی صدا --- \\
             myStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,   // حذف اکو
@@ -312,11 +430,11 @@ function copyRoomLink() {
     function toggleChatSidebar() {
         const box = document.getElementById('chat-box');
         const btn = document.getElementById('btn-chat-toggle');
-        if(box.style.display === 'none') {
-            box.style.display = 'flex';
+        if(box.classList.contains('hidden')) {
+            box.classList.remove('hidden');
             btn.classList.remove('off');
         } else {
-            box.style.display = 'none';
+            box.classList.add('hidden');
             btn.classList.add('off');
         }
     }
