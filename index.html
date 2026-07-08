@@ -42,7 +42,6 @@
         #video-grid { flex: 1; display: flex; padding: 20px; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; }
         .video-card { position: relative; background: #1f2833; border-radius: 16px; overflow: hidden; border: 2px solid #2f3e46; min-width: 260px; flex: 1 1 40%; max-width: 600px; height: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, all 0.3s ease-in-out; }
         
-        /* استایل حالت تمام صفحه برای ویدیوها (شیر اسکرین یا وبکم) */
         .video-card.fullscreen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -53,11 +52,9 @@
         }
 
         video { width: 100%; height: 100%; object-fit: cover; background: #000; }
-        /* مدیریت object-fit در حالت بزرگ‌نمایی برای اینکه کل صفحه را پر کند یا تناسب تصویر حفظ شود */
         .video-card.fullscreen video { object-fit: contain; }
         
         #card-local video { transform: scaleX(-1); }
-        /* وقتی تصویر محلی بزرگ‌نمایی یا شیر اسکرین می‌شود افکت آینه برداشته شود */
         #card-local.fullscreen video { transform: none; } 
 
         .name-tag { position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: white; z-index: 10; pointer-events: none; }
@@ -85,7 +82,7 @@
 
 <div id="settings">
     <div class="card">
-        <h2>اتاق گفتگو  (ویدیو + چت)</h2>
+        <h2>اتاق گفتگو (ویدیو + چت)</h2>
         <p id="welcome-note">نام خود را وارد کنید. اگر با لینک دعوت آمده‌اید، مستقیم دکمه ورود را بزنید.</p>
         
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
@@ -150,9 +147,6 @@
     let dataConnection = null; 
     const connectedPeers = {};
 
-    let audioContext;
-    let rawMicStream; 
-
     const peerConfig = {
         config: {
             iceServers: [
@@ -181,13 +175,8 @@
     }
 
 function copyRoomLink() {
-    // خودش به طور خودکار آی‌پی یا هاست فعلی سیستم (هرچی که هست) را برمی‌دارد
-    const currentHost = window.location.hostname; 
-    const myPort = window.location.port; 
-
-    // ساخت لینک دعوت کاملاً دینامیک
-    const baseLink = `http://${currentHost}:${myPort}${window.location.pathname}`;
-    const finalInviteLink = baseLink + '?invite=' + myId;
+    // لینک رو کاملاً دینامیک و بدون پورت دستی می‌سازه تا روی گوشی و گیت‌هاب بدون ارور باز بشه
+    const finalInviteLink = window.location.origin + window.location.pathname + '?invite=' + myId;
     
     navigator.clipboard.writeText(finalInviteLink).then(() => { 
         alert('لینک دعوت اختصاصی کپی شد:\n' + finalInviteLink); 
@@ -207,51 +196,25 @@ function copyRoomLink() {
             const wantMic = document.getElementById('opt-mic').checked;
             const selectedCameraId = document.getElementById('video-source').value;
 
-            rawMicStream = await navigator.mediaDevices.getUserMedia({
-                audio: wantMic,
+            // --- تغییر اصلی: استفاده از فیلترهای استاندارد خود مرورگر برای جلوگیری از قطعی صدا ---
+            myStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,   // حذف اکو
+                    noiseSuppression: true,   // حذف نویز (همون چیزی که می‌خوای)
+                    autoGainControl: true     // تنظیم خودکار بلندی صدا
+                },
                 video: wantCam ? { deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined } : false
             });
-        
-            myStream = new MediaStream();
+            // ----------------------------------------------------------------------------------------
 
-            if (wantMic) {
-                const micTrack = rawMicStream.getAudioTracks()[0];
-            
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(new MediaStream([micTrack]));
-                const destination = audioContext.createMediaStreamDestination();
-
-                const highpass = audioContext.createBiquadFilter();
-                highpass.type = "highpass";
-                highpass.frequency.value = 200; 
-                highpass.Q.value = 0.7;
-
-                const lowpass = audioContext.createBiquadFilter();
-                lowpass.type = "lowpass";
-                lowpass.frequency.value = 3000; 
-                lowpass.Q.value = 0.5;
-
-                source.connect(highpass);
-                highpass.connect(lowpass);
-                lowpass.connect(destination);
-
-                const cleanAudioTrack = destination.stream.getAudioTracks()[0];
-                myStream.addTrack(cleanAudioTrack);
-            }
-
-            rawMicStream.getVideoTracks().forEach(track => myStream.addTrack(track));
-        
-            // ================= [ اصلاحیه: ثابت کردن آیدی کاربر ] =================
-            // ابتدا بررسی می‌کنیم آیا این کاربر از قبل آیدی ذخیره شده دارد یا خیر
+            // ================= [ ثابت کردن آیدی کاربر ] =================
             let savedId = localStorage.getItem('mahdi_call_peer_id');
         
             if (!savedId) {
-                // اگر بار اولش است، یک آیدی ثابت برایش تولید کرده و ذخیره می‌کنیم
                 const randomPart = Math.random().toString(36).substr(2, 9);
                 savedId = "user_" + randomPart + "_name_" + encodeURIComponent(myName);
                 localStorage.setItem('mahdi_call_peer_id', savedId);
             } else {
-                // اگر قبلاً آمده، فقط نام جدیدش را در انتهای آیدی قدیمی بروزرسانی می‌کنیم تا اسمش عوض شود اما اصل آیدی ثابت بماند
                 const coreId = savedId.split('_name_')[0];
                 savedId = coreId + "_name_" + encodeURIComponent(myName);
                 localStorage.setItem('mahdi_call_peer_id', savedId);
@@ -373,12 +336,9 @@ function copyRoomLink() {
         const card = document.createElement('div');
         card.className = 'video-card'; card.id = id;
         
-        // رویداد کلیک جهت مانیتور کردن تمام‌صفحه (بزرگ و کوچک کردن)
         card.onclick = function() {
             const isFullscreen = this.classList.contains('fullscreen');
-            // ابتدا تمام ویدیوهای دیگر را از حالت تمام‌صفحه خارج می‌کنیم
             document.querySelectorAll('.video-card').forEach(c => c.classList.remove('fullscreen'));
-            // اگر قبلاً بزرگ نبوده، اکنون بزرگش می‌کنیم
             if (!isFullscreen) {
                 this.classList.add('fullscreen');
             }
@@ -400,7 +360,7 @@ function copyRoomLink() {
     }
 
     function toggleAudio() {
-        const track = rawMicStream.getAudioTracks()[0];
+        const track = myStream.getAudioTracks()[0];
         if(track) { 
             track.enabled = !track.enabled; 
             document.getElementById('btn-mic').classList.toggle('off', !track.enabled); 
@@ -421,7 +381,6 @@ function copyRoomLink() {
                 const localVid = document.querySelector('#card-local video');
                 if(localVid) localVid.srcObject = screenStream;
                 
-                // در صورت تمایل برای حذف افکت آینه در حالت شیر اسکرین محلی
                 document.getElementById('card-local').style.transform = "none";
 
                 const combinedStream = new MediaStream();
@@ -454,7 +413,6 @@ function copyRoomLink() {
         const localVid = document.querySelector('#card-local video');
         if(localVid) localVid.srcObject = myStream; 
         
-        // بازگرداندن تغییرات استایل کارت محلی
         document.getElementById('card-local').classList.remove('fullscreen');
 
         Object.entries(connectedPeers).forEach(([peerId, call]) => {
