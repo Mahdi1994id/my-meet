@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://gist.github.com/sagivo/3a4b2f2c7ac6e1b5267c2f1f59ac6c6b",
+    "name": "webRTC stun / turn server list - GitHub Gist",
+    "snippet": "any turn server for free thats still alive just for testing my app , i scraped all the web i didnt find good one ,its breaks with 0 try, my call works on stun ...",
+    "host_name": "gist.github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.metered.ca/tools/openrelay",
+    "name": "Open Relay: Free WebRTC TURN Server - Metered",
+    "snippet": "1. Add TURN Server Info Add the TURN Server Credential. If you do not have the TURN Server credentials you can obtain them by signup for a free account.",
+    "host_name": "www.metered.ca",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://webrtc.org/getting-started/turn-server",
+    "name": "TURN server - WebRTC",
+    "snippet": "There are currently several options for TURN servers available online, both as self-hosted applications (like the open-source COTURN project) ...",
+    "host_name": "webrtc.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/WebRTC/comments/1j8ih9x/launching_a_simple_turn_server_for_webrtc_5gb",
+    "name": "Launching a Simple TURN Server for WebRTC – 5GB Free, $0.20",
+    "snippet": "You get 5GB free bandwidth to test it out—no credit card needed—and after that, it's just $0.20/GB. No hidden fees, just sign in with Apple/ ... OpenRelay Project: Free Reliable WebRTC TURN Server - Reddit Looking for cost-effective alternatives to my current TURN server setup More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@jamesbordane57/what-is-a-turn-server-045f186f88a3",
+    "name": "What is a TURN Server? - Medium",
+    "snippet": "Open Relay is a free TURN server that you can use in your WebRTC applications. The Open Relay TURN server is highly available, reliable and ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://groups.google.com/g/discuss-webrtc/c/HQR-G_ZqkmA",
+    "name": "Implementing our own STUN/TURN server for WebRTC Application",
+    "snippet": "I am working on a webrtc application and have to implement following TURN server. https://code.google.com/p/rfc5766-turn-server/ I am following this tutorial.",
+    "host_name": "groups.google.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.expressturn.com",
+    "name": "ExpressTURN - Free and Premium TURN Servers",
+    "snippet": "ExpressTURN provides fast, free and reliable TURN servers for your WebRTC applications and services.",
+    "host_name": "www.expressturn.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://getstream.io/resources/projects/webrtc/advanced/stun-turn",
+    "name": "WebRTC Stun vs Turn Servers - GetStream.io",
+    "snippet": "How TURN Works. Client Authentication: A WebRTC client authenticates with a TURN server (typically using username/password credentials); Allocation Request ...",
+    "host_name": "getstream.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=IrTs5f4H0mw",
+    "name": "Setup Stun and Turn Server in less than 1 minute - YouTube",
+    "snippet": "to quickly set up a Violet TURN server for your WebRTC applications ... credentials and external IP Understand NAT traversal for WebRTC ...",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.100ms.live/blog/webrtc-turn-server",
+    "name": "WebRTC TURN server: Everything you need to know - 100ms.live",
+    "snippet": "In this article, we'll discuss everything you need to know about STUN and TURN servers. We will also try to deploy and test a popular open-source TURN server ...",
+    "host_name": "www.100ms.live",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
