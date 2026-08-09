@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mahdi Call - صدا و اشتراک صفحه</title>
+    <title>Mahdi Call - گروهی</title>
     <style>
         :root { 
             --bg: #0b0c10; --surface: #1f2833; --primary: #45f3ff; 
@@ -33,24 +33,21 @@
         #app { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; }
         .controls-bar { height: var(--header-h); background: rgba(31, 40, 51, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; gap: 15px; z-index: 100; border-bottom: 1px solid #2f3e46; position: relative; padding: 0 80px; }
         .room-badge { position: absolute; right: 20px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; color: #fff; cursor: pointer; display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+        .peer-count { position: absolute; left: 20px; background: rgba(46,196,182,0.2); padding: 6px 14px; border-radius: 16px; font-size: 0.8rem; color: var(--success); }
         
         .ctrl-btn { width: 48px; height: 48px; min-width: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.18); color: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
         .ctrl-btn.off { background: var(--danger); border-color: transparent; }
         .ctrl-btn.active { background: var(--success); color: white; border-color: transparent; }
 
         .main-container { flex: 1; display: flex; width: 100%; overflow: hidden; position: relative; }
-        #video-grid { flex: 1; display: flex; padding: 20px; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; }
-        .video-card { position: relative; background: #1f2833; border-radius: 16px; overflow: hidden; border: 2px solid #2f3e46; min-width: 200px; flex: 1 1 40%; max-width: 600px; height: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, border-color 0.15s, box-shadow 0.15s; }
+        #video-grid { flex: 1; display: flex; padding: 15px; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; align-content: center; }
+        .video-card { position: relative; background: #1f2833; border-radius: 14px; overflow: hidden; border: 2px solid #2f3e46; min-width: 160px; flex: 1 1 30%; max-width: 500px; height: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, border-color 0.15s, box-shadow 0.15s; }
         
         .video-card.speaking { border-color: var(--success); box-shadow: 0 0 20px rgba(46, 196, 182, 0.6), 0 8px 24px rgba(0,0,0,0.3); }
 
         .video-card.fullscreen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            max-width: 100%; min-width: 100%;
-            z-index: 200;
-            border-radius: 0;
-            border: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            max-width: 100%; min-width: 100%; z-index: 200; border-radius: 0; border: none;
         }
 
         video { width: 100%; height: 100%; object-fit: cover; background: #000; }
@@ -59,9 +56,9 @@
         #card-local video { transform: scaleX(-1); }
         #card-local.fullscreen video { transform: none; } 
 
-        .name-tag { position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; color: white; z-index: 10; pointer-events: none; }
+        .name-tag { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; color: white; z-index: 10; pointer-events: none; }
 
-        .conn-status { position: absolute; left: 20px; bottom: 12px; font-size: 0.65rem; padding: 3px 10px; border-radius: 10px; z-index: 10; pointer-events: none; }
+        .conn-status { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 0.65rem; padding: 3px 10px; border-radius: 10px; z-index: 10; pointer-events: none; white-space: nowrap; }
         .conn-status.retrying { color: #f0ad4e; background: rgba(240,173,78,0.2); }
         .conn-status.ok { color: var(--success); background: rgba(46,196,182,0.15); }
         .conn-status.fail { color: var(--danger); background: rgba(255,74,90,0.15); }
@@ -69,62 +66,38 @@
         @media (max-width: 1024px) {
             .controls-bar { padding: 0 70px; gap: 10px; }
             .ctrl-btn { width: 44px; height: 44px; min-width: 44px; font-size: 1.1rem; }
+            .video-card { flex: 1 1 45%; max-width: 45%; height: 240px; }
         }
 
         @media (max-width: 768px) {
             :root { --header-h: 60px; }
-
             #settings { padding: 10px; }
             .card { padding: 22px 20px; border-radius: 18px; }
             h2 { font-size: 1.15rem; }
             input, select { padding: 13px; font-size: 0.95rem; }
             .row { padding: 10px 13px; font-size: 0.9rem; }
             .btn-start { padding: 14px; font-size: 1rem; }
-
-            .controls-bar { 
-                padding: 0 8px; 
-                gap: 6px; 
-                justify-content: center;
-            }
+            .controls-bar { padding: 0 8px; gap: 6px; justify-content: center; }
             .ctrl-btn { width: 40px; height: 40px; min-width: 40px; font-size: 1rem; }
-            .room-badge { 
-                font-size: 0.72rem; 
-                padding: 6px 10px; 
-                right: 8px;
-                max-width: 130px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            #video-grid { padding: 10px; gap: 10px; }
-            .video-card { 
-                min-width: unset; 
-                flex: 1 1 100%; 
-                max-width: 100%; 
-                height: 100%;
-                min-height: 200px;
-                border-radius: 12px;
-            }
-
+            .room-badge { font-size: 0.72rem; padding: 6px 10px; right: 8px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+            .peer-count { left: 8px; font-size: 0.7rem; padding: 5px 10px; }
+            #video-grid { padding: 8px; gap: 6px; }
+            .video-card { min-width: unset; flex: 1 1 100%; max-width: 100%; height: calc(100% / 4 - 8px); min-height: 120px; border-radius: 10px; }
             .main-container { flex-direction: column; }
-            .name-tag { font-size: 0.75rem; padding: 5px 10px; bottom: 8px; right: 8px; }
+            .name-tag { font-size: 0.7rem; padding: 4px 8px; bottom: 6px; right: 6px; }
         }
 
         @media (max-width: 380px) {
             .controls-bar { gap: 4px; padding: 0 4px; }
             .ctrl-btn { width: 36px; height: 36px; min-width: 36px; font-size: 0.9rem; }
-            .room-badge { 
-                font-size: 0.65rem; 
-                padding: 5px 8px; 
-                max-width: 100px;
-            }
+            .room-badge { font-size: 0.65rem; padding: 5px 8px; max-width: 90px; }
             .card { padding: 18px 15px; }
         }
 
         @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
             :root { --header-h: 50px; }
-            .video-card { min-height: 150px; height: 100%; flex: 1 1 50%; }
-            #video-grid { padding: 8px; }
+            .video-card { min-height: 100px; height: 100%; flex: 1 1 50%; }
+            #video-grid { padding: 6px; }
         }
     </style>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -134,20 +107,20 @@
 
 <div id="settings">
     <div class="card">
-        <h2>اتاق تماس (صدا + اشتراک صفحه)</h2>
-        <p>نام خود را وارد کنید. اگر با لینک دعوت آمده‌اید، مستقیم دکمه ورود را بزنید.</p>
+        <h2>اتاق تماس گروهی (تا ۱۰ نفر)</h2>
+        <p id="welcome-note">نام خود را وارد کنید. اگر با لینک دعوت آمده‌اید، مستقیم دکمه ورود را بزنید.</p>
         
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
 
         <div class="row">
-            <span>🎙️ وضعیت میکروفون</span>
+            <span>🎙️ میکروفون</span>
             <label class="switch"><input type="checkbox" id="opt-mic" checked><span class="slider"></span></label>
         </div>
 
         <div class="row" style="flex-direction: column; align-items: stretch; gap: 8px;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
-                <span>📷 وضعیت دوربین</span>
+                <span>📷 دوربین</span>
                 <label class="switch"><input type="checkbox" id="opt-cam" checked onchange="document.getElementById('camera-select-wrapper').style.display = this.checked ? 'block' : 'none'"><span class="slider"></span></label>
             </div>
             <div id="camera-select-wrapper" style="margin-top: 5px;">
@@ -163,6 +136,7 @@
 <div id="app">
     <div class="controls-bar">
         <div class="room-badge" onclick="copyRoomLink()">کپی لینک دعوت <i class="fas fa-link"></i></div>
+        <div class="peer-count" id="peer-count"></div>
         <button class="ctrl-btn" id="btn-mic" onclick="toggleAudio()"><i class="fas fa-microphone"></i></button>
         <button class="ctrl-btn" id="btn-cam" onclick="toggleVideo()"><i class="fas fa-video"></i></button>
         <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()"><i class="fas fa-desktop"></i></button>
@@ -175,68 +149,48 @@
 </div>
 
 <script>
-    let myStream;
-    let peer;
-    let myId;
-    let targetPeerId = null;
-    let myName;
-    let isScreenSharing = false;
-    let screenStream;
-    const connectedPeers = {};
+    // ==================== VARIABLES ====================
+    let myStream, peer, myId, targetPeerId = null, myName;
+    let isScreenSharing = false, screenStream;
+    const connectedPeers = {};   // peerId -> MediaConnection
+    const dataConns = {};        // peerId -> DataConnection (for mesh discovery)
     let audioCtx = null;
     const speakingDetectors = {};
-    let isRetrying = false;
+    let isHost = false;
 
+    // ==================== ICE SERVERS (Free Only) ====================
     const peerConfig = {
         config: {
             iceServers: [
-                // === Google STUN (5) ===
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-
-                // === Cloudflare STUN ===
                 { urls: 'stun:stun.cloudflare.com:3478' },
-
-                // === Facebook STUN ===
                 { urls: 'stun:stun.fbsbx.com:3478' },
-
-                // === StunProtocol ===
                 { urls: 'stun:stun.stunprotocol.org:3478' },
                 { urls: 'stun:stunserver2024.stunprotocol.org:3478' },
-
-                // === Nextcloud ===
                 { urls: 'stun:stun.nextcloud.com:3478' },
-
-                // === 86dd.eu ===
                 { urls: 'stun:stun.86dd.eu:3478' },
-
-                // === Free TURN (evan-brass.net) ===
                 {
-                    urls: [
-                        'turn:turn.evan-brass.net:3478',
-                        'turn:turn.evan-brass.net:3478?transport=tcp'
-                    ],
-                    username: 'user',
-                    credential: 'password'
+                    urls: ['turn:turn.evan-brass.net:3478', 'turn:turn.evan-brass.net:3478?transport=tcp'],
+                    username: 'user', credential: 'password'
                 }
             ],
             iceCandidatePoolSize: 10
         }
     };
 
-    // === Enumerate cameras on load ===
+    // ==================== INIT ====================
     window.onload = () => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('invite')) {
             targetPeerId = params.get('invite');
             document.getElementById('target-peer-id').value = targetPeerId;
-            document.getElementById('welcome-note').innerText = "شما دعوت شده‌اید! نام خود را وارد کرده و دکمه ورود را بزنید.";
+            document.getElementById('welcome-note').innerText = "شما دعوت شده‌اید! نام خود را وارد کرده و ورود بزنید.";
             document.getElementById('welcome-note').style.color = "#2ec4b6";
         }
-
         navigator.mediaDevices.enumerateDevices().then(devices => {
             const sel = document.getElementById('video-source');
             devices.forEach(d => {
@@ -272,120 +226,185 @@
         if (el) el.remove();
     }
 
+    function updatePeerCount() {
+        const count = Object.keys(connectedPeers).length;
+        const el = document.getElementById('peer-count');
+        if (el) el.innerText = count > 0 ? (count + ' نفر') : 'منتظر دیگران...';
+    }
+
+    function extractNameFromId(peerId) {
+        try { return decodeURIComponent(peerId.split('_name_')[1]) || "کاربر"; } catch(e) { return "کاربر"; }
+    }
+
+    // ==================== CURRENT STREAM ====================
+    // Returns what we should send right now (screen+mic if sharing, else camera+mic)
+    function buildCurrentStream() {
+        if (isScreenSharing && screenStream && screenStream.getVideoTracks().length > 0) {
+            const s = new MediaStream();
+            s.addTrack(screenStream.getVideoTracks()[0]);
+            if (myStream.getAudioTracks().length > 0) s.addTrack(myStream.getAudioTracks()[0]);
+            return s;
+        }
+        return myStream;
+    }
+
+    // ==================== SPEAKING DETECTOR ====================
     function setupSpeakingDetector(id, stream) {
         if (!stream || !stream.getAudioTracks().length) return;
-
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        if (speakingDetectors[id]) { speakingDetectors[id].stop(); delete speakingDetectors[id]; }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
-
         const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.6;
+        analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.6;
         const source = audioCtx.createMediaStreamSource(stream);
         source.connect(analyser);
-
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
+        const buf = new Uint8Array(analyser.frequencyBinCount);
         let active = true;
-
-        function loop() {
+        (function loop() {
             if (!active) return;
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-            const avg = sum / bufferLength;
-
+            analyser.getByteFrequencyData(buf);
+            let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i];
             const card = document.getElementById(id);
-            if (card) {
-                if (avg > 12) {
-                    card.classList.add('speaking');
-                } else {
-                    card.classList.remove('speaking');
-                }
-            }
+            if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
             requestAnimationFrame(loop);
-        }
-        loop();
-
+        })();
         speakingDetectors[id] = { stop: () => { active = false; source.disconnect(); } };
     }
 
+    // ==================== DATA CONNECTION (Mesh Discovery) ====================
+    // Lightweight DataConnection used ONLY to discover other peers in the room.
+    // When a new peer connects, the existing peer sends them the list of other peers.
+    // The new peer then calls each peer on that list → full mesh.
+
+    function handleDataConnection(conn) {
+        conn.on('open', () => {
+            dataConns[conn.peer] = conn;
+            console.log('[Data] open with', conn.peer);
+
+            // Send the list of OTHER peers I'm connected to
+            const others = Object.keys(connectedPeers).filter(id => id !== conn.peer);
+            if (others.length > 0) {
+                console.log('[Data] sending peer list to', conn.peer, ':', others);
+                try { conn.send({ type: 'peer-list', peers: others }); } catch(e) {}
+            }
+        });
+
+        conn.on('data', (data) => {
+            if (!data) return;
+            if (data.type === 'peer-list') {
+                console.log('[Data] got peer list:', data.peers);
+                (data.peers || []).forEach(pid => connectToPeerIfNeeded(pid));
+            }
+        });
+
+        conn.on('close', () => { delete dataConns[conn.peer]; });
+        conn.on('error', () => { delete dataConns[conn.peer]; });
+    }
+
+    function connectToPeerIfNeeded(peerId) {
+        if (connectedPeers[peerId] || peerId === myId) return;
+        console.log('[Mesh] connecting to', peerId);
+        makeCallWithRetry(peerId, buildCurrentStream(), 0, false);
+        // Open data connection for future discovery
+        if (!dataConns[peerId]) {
+            const dc = peer.connect(peerId, { reliable: true });
+            handleDataConnection(dc);
+        }
+    }
+
+    // ==================== PEER INIT ====================
     async function initPeer() {
         myName = document.getElementById('username-input').value.trim() || "کاربر ناشناس";
         targetPeerId = document.getElementById('target-peer-id').value || null;
+        isHost = !targetPeerId;
 
         const submitBtn = document.getElementById('btn-submit');
         submitBtn.disabled = true;
-        document.getElementById('status-msg').innerText = "در حال ایجاد خط صوتی...";
+        document.getElementById('status-msg').innerText = "در حال اتصال...";
 
         try {
             const wantCam = document.getElementById('camera-select-wrapper').style.display !== 'none';
             const wantMic = document.getElementById('opt-mic').checked;
-            const selectedCameraId = document.getElementById('video-source').value;
+            const camId = document.getElementById('video-source').value;
 
             myStream = await navigator.mediaDevices.getUserMedia({
-                audio: wantMic ? {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    sampleRate: 48000,
-                    channelCount: 1
-                } : false,
-                video: wantCam ? { deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined } : false
+                audio: wantMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } : false,
+                video: wantCam ? { deviceId: camId ? { exact: camId } : undefined } : false
             });
 
             let savedId = localStorage.getItem('mahdi_call_peer_id');
-        
             if (!savedId) {
-                const randomPart = Math.random().toString(36).substr(2, 9);
-                savedId = "user_" + randomPart + "_name_" + encodeURIComponent(myName);
-                localStorage.setItem('mahdi_call_peer_id', savedId);
+                savedId = "user_" + Math.random().toString(36).substr(2, 9) + "_name_" + encodeURIComponent(myName);
             } else {
-                const coreId = savedId.split('_name_')[0];
-                savedId = coreId + "_name_" + encodeURIComponent(myName);
-                localStorage.setItem('mahdi_call_peer_id', savedId);
+                savedId = savedId.split('_name_')[0] + "_name_" + encodeURIComponent(myName);
             }
-        
+            localStorage.setItem('mahdi_call_peer_id', savedId);
             myId = savedId;
 
             peer = new Peer(myId, peerConfig);
 
-            peer.on('open', (id) => {
+            // --- Peer is open ---
+            peer.on('open', () => {
                 document.getElementById('settings').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 addVideoTrack('card-local', myStream, myName + " (شما)", true);
                 setupSpeakingDetector('card-local', myStream);
-            
+                updatePeerCount();
+
                 if (targetPeerId) {
                     showConnStatus('در حال اتصال...', 'retrying');
-                    makeCallWithRetry(targetPeerId, myStream, 0);
+                    // Call the host
+                    makeCallWithRetry(targetPeerId, buildCurrentStream(), 0, true);
+                    // Open data connection for mesh discovery
+                    const dc = peer.connect(targetPeerId, { reliable: true });
+                    handleDataConnection(dc);
                 }
             });
 
+            // --- Incoming call (anyone can call us) ---
             peer.on('call', (incomingCall) => {
-                console.log('[Incoming] call from', incomingCall.peer);
-                incomingCall.answer(myStream);
-                setupCallListeners(incomingCall, incomingCall.peer);
-                connectedPeers[incomingCall.peer] = incomingCall;
+                const pid = incomingCall.peer;
+                const oldCall = connectedPeers[pid];
+                console.log('[Incoming] call from', extractNameFromId(pid), '(replacing:', !!oldCall, ')');
+
+                // Update connectedPeers FIRST so old close handler won't remove video
+                connectedPeers[pid] = incomingCall;
+                updatePeerCount();
+
+                // Answer with current stream (screen if sharing, else camera)
+                incomingCall.answer(buildCurrentStream());
+                setupCallListeners(incomingCall, pid);
+
+                // Safe close old call
+                if (oldCall) { try { oldCall.close(); } catch(e) {} }
+
+                // Notify all OTHER data-connected peers about the new peer
+                Object.entries(dataConns).forEach(([id, conn]) => {
+                    if (id !== pid) {
+                        try { conn.send({ type: 'peer-list', peers: [pid] }); } catch(e) {}
+                    }
+                });
             });
 
+            // --- Incoming data connection ---
+            peer.on('connection', (conn) => {
+                handleDataConnection(conn);
+            });
+
+            // --- Errors ---
             peer.on('error', (err) => {
                 console.error('[Peer] error:', err.type, err);
-                if (err.type === 'peer-unavailable') {
-                    alert('کاربر مورد نظر آنلاین نیست یا شناسه نامعتبر است.');
-                } else if (err.type === 'network' || err.type === 'server-error') {
-                    alert('خطای شبکه یا سرور. صفحه را رفرش کنید.');
-                } else if (err.type === 'unavailable-id') {
+                if (err.type === 'unavailable-id') {
                     alert('این شناسه قبلا گرفته شده. صفحه را رفرش کنید.');
                     localStorage.removeItem('mahdi_call_peer_id');
+                } else if (err.type === 'network' || err.type === 'server-error') {
+                    alert('خطای شبکه. صفحه را رفرش کنید.');
                 }
+                // peer-unavailable handled by retry mechanism
             });
 
             peer.on('disconnected', () => {
-                console.warn('[Peer] disconnected from signaling server');
+                console.warn('[Peer] signaling disconnected');
                 if (!peer.destroyed) peer.reconnect();
             });
 
@@ -395,102 +414,84 @@
         }
     }
 
+    // ==================== CALL HANDLING ====================
     function setupCallListeners(call, peerId) {
         call.on('stream', (remoteStream) => {
-            console.log('[Call] got stream from', peerId, 'tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
-            const peerName = extractNameFromId(peerId);
-            addVideoTrack(peerId, remoteStream, peerName, false);
+            console.log('[Call] stream from', extractNameFromId(peerId));
+            addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
             setupSpeakingDetector(peerId, remoteStream);
             hideConnStatus();
         });
         call.on('close', () => {
-            console.log('[Call] closed:', peerId);
-            removeVideoTrack(peerId);
+            // Only remove video if this is still the active call
+            if (connectedPeers[peerId] === call) {
+                console.log('[Call] closed:', extractNameFromId(peerId));
+                removeVideoTrack(peerId);
+                updatePeerCount();
+            }
         });
-        call.on('error', (err) => {
-            console.error('[Call] error:', peerId, err);
-        });
+        call.on('error', (err) => console.error('[Call] error:', peerId, err));
     }
 
-    function makeCallWithRetry(peerId, stream, attempt) {
+    function makeCallWithRetry(peerId, stream, attempt, showAlert) {
         const maxRetries = 3;
         const maxWait = 6000;
 
-        console.log(`[Call] Attempt ${attempt + 1}/${maxRetries} to ${peerId}`);
-        showConnStatus(attempt > 0 ? `تلاش مجدد ${attempt + 1}...` : 'در حال اتصال...', 'retrying');
+        console.log('[Call] attempt', attempt + 1, 'to', extractNameFromId(peerId));
+        if (showAlert) showConnStatus(attempt > 0 ? ('تلاش ' + (attempt+1) + '...') : 'در حال اتصال...', 'retrying');
 
         const call = peer.call(peerId, stream);
         if (!call) {
-            if (attempt < maxRetries - 1) {
-                setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1), 1500);
-            } else {
-                showConnStatus('اتصال برقرار نشد', 'fail');
-            }
+            if (attempt < maxRetries - 1) setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1, showAlert), 1500);
+            else if (showAlert) showConnStatus('اتصال برقرار نشد', 'fail');
             return;
         }
 
         let resolved = false;
 
         const onSuccess = (remoteStream) => {
-            if (resolved) return;
-            resolved = true;
-            console.log('[Call] connected on attempt', attempt + 1, 'to', peerId);
-            const peerName = extractNameFromId(peerId);
-            addVideoTrack(peerId, remoteStream, peerName, false);
-            setupSpeakingDetector(peerId, remoteStream);
+            if (resolved) return; resolved = true;
+            console.log('[Call] connected to', extractNameFromId(peerId));
             connectedPeers[peerId] = call;
-            hideConnStatus();
+            updatePeerCount();
+            addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
+            setupSpeakingDetector(peerId, remoteStream);
+            if (showAlert) hideConnStatus();
         };
 
         const onFail = (reason) => {
-            if (resolved) return;
-            resolved = true;
-            console.warn('[Call] failed attempt', attempt + 1, ':', reason);
+            if (resolved) return; resolved = true;
+            console.warn('[Call] failed:', reason);
             try { call.close(); } catch(e) {}
-
             if (attempt < maxRetries - 1) {
-                const delay = 1500 + (attempt * 1000);
-                console.log(`[Call] retrying in ${delay}ms...`);
-                setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1), delay);
-            } else {
-                console.error('[Call] all retries failed for', peerId);
+                setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1, showAlert), 1500 + attempt * 1000);
+            } else if (showAlert) {
                 showConnStatus('اتصال برقرار نشد', 'fail');
             }
         };
 
         call.on('stream', onSuccess);
-        call.on('close', () => { if (!resolved) onFail('call closed before stream'); });
-        call.on('error', (err) => onFail(err.type || err.message || 'error'));
-
-        // Timeout: if no stream received, retry
-        setTimeout(() => {
-            if (!resolved) onFail('timeout after ' + maxWait + 'ms');
-        }, maxWait);
+        call.on('close', () => { if (!resolved) onFail('closed'); });
+        call.on('error', (err) => onFail(err.type || 'error'));
+        setTimeout(() => { if (!resolved) onFail('timeout'); }, maxWait);
     }
 
-    function extractNameFromId(peerId) {
-        try { return decodeURIComponent(peerId.split('_name_')[1]) || "کاربر دیگر"; } catch(e) { return "کاربر دیگر"; }
-    }
-
+    // ==================== VIDEO GRID ====================
     function addVideoTrack(id, stream, label, isLocal) {
-        const existingCard = document.getElementById(id);
-        if (existingCard) {
-            const vid = existingCard.querySelector('video');
+        const existing = document.getElementById(id);
+        if (existing) {
+            const vid = existing.querySelector('video');
             if (vid && vid.srcObject !== stream) vid.srcObject = stream;
             return;
         }
         const grid = document.getElementById('video-grid');
         const card = document.createElement('div');
         card.className = 'video-card'; card.id = id;
-        
         card.onclick = function() {
-            const isFullscreen = this.classList.contains('fullscreen');
+            const fs = this.classList.contains('fullscreen');
             document.querySelectorAll('.video-card').forEach(c => c.classList.remove('fullscreen'));
-            if (!isFullscreen) {
-                this.classList.add('fullscreen');
-            }
+            if (!fs) this.classList.add('fullscreen');
         };
-
         const video = document.createElement('video');
         video.autoplay = true; video.playsInline = true;
         if (isLocal) video.muted = true;
@@ -503,163 +504,134 @@
     function removeVideoTrack(id) {
         const card = document.getElementById(id);
         if (card) card.remove();
-        if (connectedPeers[id]) delete connectedPeers[id];
+        delete connectedPeers[id];
         if (speakingDetectors[id]) { speakingDetectors[id].stop(); delete speakingDetectors[id]; }
     }
 
+    // ==================== AUDIO / VIDEO TOGGLE ====================
     function toggleAudio() {
-        const track = myStream.getAudioTracks()[0];
-        if (track) { 
-            track.enabled = !track.enabled; 
-            document.getElementById('btn-mic').classList.toggle('off', !track.enabled); 
-        }
+        const t = myStream.getAudioTracks()[0];
+        if (t) { t.enabled = !t.enabled; document.getElementById('btn-mic').classList.toggle('off', !t.enabled); }
     }
 
     function toggleVideo() {
-        const track = myStream.getVideoTracks()[0];
-        if (track) { 
-            track.enabled = !track.enabled; 
-            document.getElementById('btn-cam').classList.toggle('off', !track.enabled); 
-        }
+        const t = myStream.getVideoTracks()[0];
+        if (t) { t.enabled = !t.enabled; document.getElementById('btn-cam').classList.toggle('off', !t.enabled); }
     }
 
-    // ========== SCREEN SHARE ==========
-
+    // ==================== SCREEN SHARE (Safe Recall) ====================
     async function toggleScreen() {
         const btn = document.getElementById('btn-screen');
         if (!isScreenSharing) {
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 const screenTrack = screenStream.getVideoTracks()[0];
+                console.log('[Screen] got track:', screenTrack.label);
 
-                console.log('[ScreenShare] got screen track:', screenTrack.label, screenTrack.readyState);
-
-                // Update local preview to show screen
+                // Update local preview
                 const localVid = document.querySelector('#card-local video');
                 if (localVid) localVid.srcObject = screenStream;
                 document.getElementById('card-local').style.transform = "none";
 
-                // Build stream to send: screen video + mic audio
                 const sendStream = new MediaStream();
                 sendStream.addTrack(screenTrack);
-                if (myStream.getAudioTracks().length > 0) {
-                    sendStream.addTrack(myStream.getAudioTracks()[0]);
-                }
+                if (myStream.getAudioTracks().length > 0) sendStream.addTrack(myStream.getAudioTracks()[0]);
 
-                console.log('[ScreenShare] sendStream tracks:', sendStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
-
-                // === Method 1: Try replaceTrack on existing calls ===
-                const recallPeerIds = [];
-                for (const [pid, call] of Object.entries(connectedPeers)) {
-                    try {
-                        const pc = call.peerConnection;
-                        if (pc && typeof pc.getSenders === 'function') {
-                            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                            if (videoSender) {
-                                await videoSender.replaceTrack(screenTrack);
-                                console.log('[ScreenShare] replaceTrack OK for', pid);
-                                continue;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[ScreenShare] replaceTrack failed for', pid, ':', e);
-                    }
-                    console.log('[ScreenShare] will recall for', pid);
-                    recallPeerIds.push(pid);
-                }
-
-                // === Method 2: Close + Recall for peers where replaceTrack failed or no video sender ===
-                if (recallPeerIds.length > 0) {
-                    // Close old calls first
-                    for (const pid of recallPeerIds) {
-                        const oldCall = connectedPeers[pid];
-                        if (oldCall) {
-                            console.log('[ScreenShare] closing old call for', pid);
-                            try { oldCall.close(); } catch(e) {}
-                            delete connectedPeers[pid];
-                        }
-                    }
-
-                    // Wait for old connections to fully close
-                    await new Promise(r => setTimeout(r, 600));
-
-                    // Make new calls with screen stream
-                    for (const pid of recallPeerIds) {
-                        console.log('[ScreenShare] recalling', pid, 'with screen stream');
-                        makeCallWithRetry(pid, sendStream, 0);
-                    }
+                // Try replaceTrack or safe recall for each peer
+                const entries = Object.entries(connectedPeers);
+                for (const [pid, call] of entries) {
+                    await switchToScreen(pid, call, sendStream, screenTrack);
                 }
 
                 isScreenSharing = true;
                 btn.classList.add('active');
                 screenTrack.onended = () => stopScreenSharing();
-
             } catch (e) {
-                console.error('[ScreenShare] getDisplayMedia error:', e);
+                console.error('[Screen] error:', e);
             }
         } else {
             await stopScreenSharing();
         }
     }
 
-    async function stopScreenSharing() {
-        if (!isScreenSharing) return;
-        console.log('[ScreenShare] stopping...');
-
-        // Stop screen tracks
-        if (screenStream) {
-            screenStream.getTracks().forEach(t => t.stop());
-            screenStream = null;
+    async function switchToScreen(peerId, existingCall, sendStream, screenTrack) {
+        // Method 1: replaceTrack (best - no reconnect, audio stays)
+        try {
+            const pc = existingCall.peerConnection;
+            if (pc && pc.getSenders) {
+                const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (vs) {
+                    await vs.replaceTrack(screenTrack);
+                    console.log('[Screen] replaceTrack OK for', extractNameFromId(peerId));
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('[Screen] replaceTrack failed:', e.message || e);
         }
 
-        // Restore local preview
+        // Method 2: Safe Recall (new call first, close old only after confirmed)
+        console.log('[Screen] safe recall for', extractNameFromId(peerId));
+        showConnStatus('اشتراک صفحه...', 'retrying');
+
+        const newCall = peer.call(peerId, sendStream);
+        if (!newCall) { showConnStatus('اشتراک صفحه شکست', 'fail'); return; }
+
+        let done = false;
+        newCall.on('stream', (rs) => {
+            if (done) return; done = true;
+            connectedPeers[peerId] = newCall;
+            try { existingCall.close(); } catch(e) {}
+            addVideoTrack(peerId, rs, extractNameFromId(peerId), false);
+            setupSpeakingDetector(peerId, rs);
+            hideConnStatus();
+        });
+        newCall.on('close', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
+        newCall.on('error', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
+        setTimeout(() => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }}, 10000);
+    }
+
+    async function stopScreenSharing() {
+        if (!isScreenSharing) return;
+        if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+
         const localVid = document.querySelector('#card-local video');
         if (localVid) localVid.srcObject = myStream;
         const localCard = document.getElementById('card-local');
-        if (localCard) localCard.classList.remove('fullscreen');
+        if (localCard) localCard.style.transform = "";
 
-        // Find which peers used replaceTrack vs recall
-        const recallPeerIds = [];
-        for (const [pid, call] of Object.entries(connectedPeers)) {
-            const cameraTrack = myStream.getVideoTracks()[0];
-            if (cameraTrack) {
+        const camTrack = myStream.getVideoTracks()[0];
+        const entries = Object.entries(connectedPeers);
+
+        for (const [pid, call] of entries) {
+            if (camTrack) {
                 try {
                     const pc = call.peerConnection;
-                    if (pc && typeof pc.getSenders === 'function') {
-                        const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if (videoSender) {
-                            await videoSender.replaceTrack(cameraTrack);
-                            console.log('[StopScreen] replaceTrack back OK for', pid);
-                            continue;
-                        }
+                    if (pc && pc.getSenders) {
+                        const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if (vs) { await vs.replaceTrack(camTrack); continue; }
                     }
-                } catch (e) {
-                    console.warn('[StopScreen] replaceTrack back failed for', pid, ':', e);
-                }
+                } catch(e) {}
             }
-            recallPeerIds.push(pid);
-        }
-
-        // Recall peers that need it
-        if (recallPeerIds.length > 0) {
-            for (const pid of recallPeerIds) {
-                const oldCall = connectedPeers[pid];
-                if (oldCall) {
-                    try { oldCall.close(); } catch(e) {}
-                    delete connectedPeers[pid];
-                }
-            }
-
-            await new Promise(r => setTimeout(r, 600));
-
-            for (const pid of recallPeerIds) {
-                console.log('[StopScreen] recalling', pid, 'with original stream');
-                makeCallWithRetry(pid, myStream, 0);
-            }
+            // Safe recall back
+            const existingCall = call;
+            const nc = peer.call(pid, myStream);
+            if (!nc) continue;
+            let done = false;
+            nc.on('stream', (rs) => {
+                if (done) return; done = true;
+                connectedPeers[pid] = nc;
+                try { existingCall.close(); } catch(e) {}
+                addVideoTrack(pid, rs, extractNameFromId(pid), false);
+                setupSpeakingDetector(pid, rs);
+            });
+            nc.on('error', () => { if (!done) { done = true; try { nc.close(); } catch(e) {}}});
+            setTimeout(() => { if (!done) { done = true; try { nc.close(); } catch(e) {}}}, 10000);
         }
 
         isScreenSharing = false;
         document.getElementById('btn-screen').classList.remove('active');
+        hideConnStatus();
     }
 </script>
 </body>
