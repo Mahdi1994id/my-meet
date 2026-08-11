@@ -48,10 +48,13 @@
         #video-grid { display: grid; gap: 4px; padding: 4px; height: 100%; width: 100%; }
         .video-card { background: var(--surface); border-radius: 10px; overflow: hidden; position: relative; min-height: 0; }
         .video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .name-tag { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 8px; background: rgba(0,0,0,0.7); font-size: 0.7rem; text-align: center; border-radius: 0 0 10px 10px; }
+        .name-tag { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 8px; background: rgba(0,0,0,0.7); font-size: 0.7rem; text-align: center; border-radius: 0 0 10px 10px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .video-card.speaking .name-tag { background: var(--success); color: #000; font-weight: 700; }
         .video-card.fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 200; border-radius: 0; }
         .video-card.fullscreen .name-tag { font-size: 1rem; padding: 8px 16px; }
+        .audio-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; flex-shrink: 0; transition: background 0.3s; }
+        .audio-dot.active { background: var(--success); }
+        .tap-unmute { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.85rem; cursor: pointer; z-index: 10; display: none; border: 1px solid var(--primary); }
 
         #status-msg { color: #aaa; font-size: 0.8rem; margin-top: 10px; min-height: 20px; }
 
@@ -117,8 +120,8 @@
     let isScreenSharing = false, screenStream;
     const connectedPeers = {};   // peerId -> MediaConnection
     const dataConns = {};        // peerId -> DataConnection (for mesh discovery)
-    let audioCtx = null;
-    const audioRouters = {};     // peerId -> { source, gainNode, stop() }  (audio routing + speaking detection)
+    let audioCtx = null;         // AudioContext only used for LOCAL speaking indicator
+    const speakingPolls = {};    // peerId -> intervalId (remote speaking detection via getStats)
     let isHost = false;
 
     // ==================== ICE SERVERS (Free Only) ====================
@@ -213,89 +216,97 @@
         return myStream;
     }
 
-    // ==================== AUDIO ROUTING (AudioContext) ====================
-    // All remote audio is routed through AudioContext instead of video elements.
-    // This solves: (1) browser limits on simultaneous audio elements,
-    // (2) createMediaStreamSource interference with video audio.
-    // Video elements are ALL muted — audio goes: source → analyser → gain → destination.
+    // ==================== REMOTE SPEAKING DETECTION (via getStats) ====================
+    // Uses WebRTC getStats() instead of AudioContext createMediaStreamSource.
+    // This avoids any interference with video element audio playback.
+    // Works for any number of remote peers without browser audio limits.
 
-    function routeRemoteAudio(id, stream) {
-        if (!stream || !stream.getAudioTracks().length) return;
+    function startSpeakingDetection(peerId) {
+        stopSpeakingDetection(peerId);
 
-        // Clean up previous routing for this peer
-        if (audioRouters[id]) { audioRouters[id].stop(); delete audioRouters[id]; }
+        const checkAudio = async () => {
+            const call = connectedPeers[peerId];
+            if (!call || !call.peerConnection) {
+                stopSpeakingDetection(peerId);
+                return;
+            }
 
-        // Ensure AudioContext exists (created during user gesture in initPeer)
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-        }
+            try {
+                const stats = await call.peerConnection.getStats();
+                let audioLevel = -1;
 
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.6;
+                for (const [, stat] of stats) {
+                    if (stat.type === 'inbound-rtp' && stat.kind === 'audio') {
+                        audioLevel = (stat.audioLevel !== undefined) ? stat.audioLevel : -1;
+                        break;
+                    }
+                }
 
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 1.0;
+                const card = document.getElementById(peerId);
+                if (!card) { stopSpeakingDetection(peerId); return; }
 
-        const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);       // For speaking detection
-        source.connect(gainNode);        // For audio output
-        gainNode.connect(audioCtx.destination);  // → Speakers!
+                // Update speaking indicator
+                if (audioLevel >= 0) {
+                    card.classList.toggle('speaking', audioLevel > 0.02);
+                }
 
-        const buf = new Uint8Array(analyser.frequencyBinCount);
-        let active = true;
+                // Update audio dot
+                const dot = card.querySelector('.audio-dot');
+                if (dot) {
+                    dot.classList.toggle('active', audioLevel >= 0);
+                }
 
-        (function loop() {
-            if (!active) return;
-            analyser.getByteFrequencyData(buf);
-            let sum = 0;
-            for (let i = 0; i < buf.length; i++) sum += buf[i];
-            const card = document.getElementById(id);
-            if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
-            requestAnimationFrame(loop);
-        })();
-
-        audioRouters[id] = {
-            stop: () => {
-                active = false;
-                try { source.disconnect(); } catch(e) {}
-                try { gainNode.disconnect(); } catch(e) {}
+            } catch(e) {
+                // Silently ignore stats errors
             }
         };
+
+        checkAudio();
+        speakingPolls[peerId] = setInterval(checkAudio, 300);
     }
 
-    function stopAudioRouting(id) {
-        if (audioRouters[id]) { audioRouters[id].stop(); delete audioRouters[id]; }
+    function stopSpeakingDetection(peerId) {
+        if (speakingPolls[peerId]) {
+            clearInterval(speakingPolls[peerId]);
+            delete speakingPolls[peerId];
+        }
     }
 
-    // ==================== LOCAL SPEAKING DETECTOR ====================
-    // Local audio doesn't need AudioContext routing (video is muted anyway),
-    // but we still want the visual speaking indicator for ourselves.
-    let localSpeakingLoop = null;
+    // ==================== LOCAL SPEAKING DETECTOR (AudioContext) ====================
+    // Only used for local video indicator. Single source, no interference.
+    let localActive = false;
+    let localSource = null;
+
     function setupLocalSpeakingDetector(stream) {
         if (!stream || !stream.getAudioTracks().length) return;
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 
-        if (localSpeakingLoop) { cancelAnimationFrame(localSpeakingLoop); localSpeakingLoop = null; }
+        // Clean up old
+        if (localSource) { try { localSource.disconnect(); } catch(e) {} }
+        localActive = false;
+
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch(e) { return; }
 
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 512;
         analyser.smoothingTimeConstant = 0.6;
-        const source = audioCtx.createMediaStreamSource(stream);
-        // Only connect to analyser, NOT to destination (we don't want to hear ourselves)
-        source.connect(analyser);
+        localSource = audioCtx.createMediaStreamSource(stream);
+        // Connect ONLY to analyser (NOT to destination — we don't want to hear ourselves)
+        localSource.connect(analyser);
 
         const buf = new Uint8Array(analyser.frequencyBinCount);
+        localActive = true;
 
         (function loop() {
-            analyser.getByteFrequencyData(buf);
+            if (!localActive) return;
+            try { analyser.getByteFrequencyData(buf); } catch(e) { localActive = false; return; }
             let sum = 0;
             for (let i = 0; i < buf.length; i++) sum += buf[i];
             const card = document.getElementById('card-local');
             if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
-            localSpeakingLoop = requestAnimationFrame(loop);
+            requestAnimationFrame(loop);
         })();
     }
 
@@ -341,17 +352,6 @@
         targetPeerId = document.getElementById('target-peer-id').value || null;
         isHost = !targetPeerId;
 
-        // Create AudioContext HERE during user gesture (button click)
-        // This ensures it's in 'running' state and won't be blocked by autoplay policy
-        if (!audioCtx) {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                console.log('[AudioCtx] created during user gesture, state:', audioCtx.state);
-            } catch(e) {
-                console.error('[AudioCtx] creation failed:', e);
-            }
-        }
-
         const submitBtn = document.getElementById('btn-submit');
         submitBtn.disabled = true;
         document.getElementById('status-msg').innerText = "در حال اتصال...";
@@ -392,23 +392,19 @@
                 }
             });
 
-            // --- Incoming call ---
             peer.on('call', (incomingCall) => {
                 const pid = incomingCall.peer;
                 const oldCall = connectedPeers[pid];
                 console.log('[Incoming] call from', extractNameFromId(pid), '(replacing:', !!oldCall, ')');
 
-                // Update connectedPeers FIRST so old close handler won't remove video
                 connectedPeers[pid] = incomingCall;
                 updatePeerCount();
 
                 incomingCall.answer(buildCurrentStream());
                 setupCallListeners(incomingCall, pid);
 
-                // Safe close old call
                 if (oldCall) { try { oldCall.close(); } catch(e) {} }
 
-                // Notify all OTHER data-connected peers about the new peer
                 Object.entries(dataConns).forEach(([id, conn]) => {
                     if (id !== pid) {
                         try { conn.send({ type: 'peer-list', peers: [pid] }); } catch(e) {}
@@ -446,14 +442,12 @@
         call.on('stream', (remoteStream) => {
             console.log('[Call] stream from', extractNameFromId(peerId), '- tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
             addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            routeRemoteAudio(peerId, remoteStream);
             hideConnStatus();
         });
         call.on('close', () => {
             if (connectedPeers[peerId] === call) {
                 console.log('[Call] closed:', extractNameFromId(peerId));
                 removeVideoTrack(peerId);
-                stopAudioRouting(peerId);
                 updatePeerCount();
             }
         });
@@ -492,7 +486,6 @@
             connectedPeers[peerId] = call;
             updatePeerCount();
             addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            routeRemoteAudio(peerId, remoteStream);
             if (showAlert) hideConnStatus();
         };
 
@@ -520,8 +513,9 @@
             const vid = existing.querySelector('video');
             if (vid && vid.srcObject !== stream) {
                 vid.srcObject = stream;
-                // Re-route audio when stream changes
-                if (!isLocal) routeRemoteAudio(id, stream);
+                vid.play().catch(() => {});
+                // Restart speaking detection for updated stream
+                if (!isLocal) startSpeakingDetection(id);
             }
             return;
         }
@@ -535,23 +529,30 @@
         };
         const video = document.createElement('video');
         video.autoplay = true; video.playsInline = true;
-        // ALL videos are muted — remote audio goes through AudioContext
-        video.muted = true;
+        // Only local video is muted. Remote videos play audio through the element.
+        video.muted = isLocal;
         video.srcObject = stream;
+        // Explicit play() call to handle autoplay policy
+        video.play().catch(() => {
+            // If autoplay blocked, show tap-to-unmute hint
+            console.warn('[Video] autoplay blocked for', id);
+        });
+
         const tag = document.createElement('div');
-        tag.className = 'name-tag'; tag.innerText = label;
+        tag.className = 'name-tag';
+        tag.innerHTML = '<span class="audio-dot"></span>' + label;
         card.appendChild(video); card.appendChild(tag); grid.appendChild(card);
         updatePeerCount();
 
-        // Route remote audio through AudioContext
-        if (!isLocal) routeRemoteAudio(id, stream);
+        // Start speaking detection for remote peers
+        if (!isLocal) startSpeakingDetection(id);
     }
 
     function removeVideoTrack(id) {
         const card = document.getElementById(id);
         if (card) card.remove();
         delete connectedPeers[id];
-        stopAudioRouting(id);
+        stopSpeakingDetection(id);
     }
 
     // ==================== AUDIO / VIDEO TOGGLE ====================
@@ -599,7 +600,6 @@
     }
 
     async function switchToScreen(peerId, existingCall, sendStream, screenTrack) {
-        // Method 1: replaceTrack (best - no reconnect, audio stays)
         try {
             const pc = existingCall.peerConnection;
             if (pc && pc.getSenders) {
@@ -614,7 +614,6 @@
             console.warn('[Screen] replaceTrack failed:', e.message || e);
         }
 
-        // Method 2: Safe Recall
         console.log('[Screen] safe recall for', extractNameFromId(peerId));
         showConnStatus('اشتراک صفحه...', 'retrying');
 
@@ -627,7 +626,6 @@
             connectedPeers[peerId] = newCall;
             try { existingCall.close(); } catch(e) {}
             addVideoTrack(peerId, rs, extractNameFromId(peerId), false);
-            routeRemoteAudio(peerId, rs);
             hideConnStatus();
         });
         newCall.on('close', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
@@ -666,7 +664,6 @@
                 connectedPeers[pid] = nc;
                 try { existingCall.close(); } catch(e) {}
                 addVideoTrack(pid, rs, extractNameFromId(pid), false);
-                routeRemoteAudio(pid, rs);
             });
             nc.on('error', () => { if (!done) { done = true; try { nc.close(); } catch(e) {}}});
             setTimeout(() => { if (!done) { done = true; try { nc.close(); } catch(e) {}}}, 10000);
