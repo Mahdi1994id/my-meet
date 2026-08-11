@@ -22,81 +22,44 @@
         
         .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--success); }
-        input:checked + .slider:before { transform: translateX(20px); }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #444; border-radius: 26px; transition: 0.3s; }
+        .slider:before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+        .switch input:checked + .slider { background: var(--success); }
+        .switch input:checked + .slider:before { transform: translateX(20px); }
 
-        .btn-start { width: 100%; padding: 16px; background: var(--primary); color: #0b0c10; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(69, 243, 255, 0.3); }
-        #status-msg { text-align: center; color: #45f3ff; font-size: 0.85rem; margin-top: 15px; font-weight: bold; }
+        .btn-start { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--primary), #00b4d8); color: #000; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 8px; }
+        .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-start:hover:not(:disabled) { transform: scale(1.02); }
 
-        #app { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; }
-        .controls-bar { height: var(--header-h); background: rgba(31, 40, 51, 0.95); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; gap: 15px; z-index: 100; border-bottom: 1px solid #2f3e46; position: relative; padding: 0 80px; }
-        .room-badge { position: absolute; right: 20px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; color: #fff; cursor: pointer; display: flex; gap: 8px; align-items: center; white-space: nowrap; }
-        .peer-count { position: absolute; left: 20px; background: rgba(46,196,182,0.2); padding: 6px 14px; border-radius: 16px; font-size: 0.8rem; color: var(--success); }
-        
-        .ctrl-btn { width: 48px; height: 48px; min-width: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.18); color: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
-        .ctrl-btn.off { background: var(--danger); border-color: transparent; }
-        .ctrl-btn.active { background: var(--success); color: white; border-color: transparent; }
+        #app { display: none; flex-direction: column; height: 100vh; }
+        .controls-bar { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #2f3e46; flex-shrink: 0; position: relative; }
+        .room-badge { background: rgba(69,243,255,0.1); color: var(--primary); padding: 8px 14px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid rgba(69,243,255,0.2); transition: 0.3s; white-space: nowrap; }
+        .room-badge:hover { background: rgba(69,243,255,0.2); }
+        .peer-count { color: var(--success); font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+        .ctrl-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #2f3e46; color: white; font-size: 1.1rem; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ctrl-btn:hover { background: #3d5166; }
+        .ctrl-btn.off { background: var(--danger); }
+        .ctrl-btn.active { background: var(--success); color: #000; }
+        .conn-status { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; padding: 3px 12px; border-radius: 10px; white-space: nowrap; }
+        .conn-status.retrying { background: rgba(255,165,0,0.2); color: orange; }
+        .conn-status.fail { background: rgba(255,74,90,0.2); color: var(--danger); }
 
-        .main-container { flex: 1; display: flex; width: 100%; overflow: hidden; position: relative; }
-        #video-grid { flex: 1; display: flex; padding: 15px; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; background: #0b0c10; overflow-y: auto; position: relative; align-content: center; }
-        .video-card { position: relative; background: #1f2833; border-radius: 14px; overflow: hidden; border: 2px solid #2f3e46; min-width: 160px; flex: 1 1 30%; max-width: 500px; height: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, border-color 0.15s, box-shadow 0.15s; }
-        
-        .video-card.speaking { border-color: var(--success); box-shadow: 0 0 20px rgba(46, 196, 182, 0.6), 0 8px 24px rgba(0,0,0,0.3); }
+        .main-container { flex: 1; overflow: hidden; position: relative; }
+        #video-grid { display: grid; gap: 4px; padding: 4px; height: 100%; width: 100%; }
+        .video-card { background: var(--surface); border-radius: 10px; overflow: hidden; position: relative; min-height: 0; }
+        .video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .name-tag { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 8px; background: rgba(0,0,0,0.7); font-size: 0.7rem; text-align: center; border-radius: 0 0 10px 10px; }
+        .video-card.speaking .name-tag { background: var(--success); color: #000; font-weight: 700; }
+        .video-card.fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 200; border-radius: 0; }
+        .video-card.fullscreen .name-tag { font-size: 1rem; padding: 8px 16px; }
 
-        .video-card.fullscreen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            max-width: 100%; min-width: 100%; z-index: 200; border-radius: 0; border: none;
+        #status-msg { color: #aaa; font-size: 0.8rem; margin-top: 10px; min-height: 20px; }
+
+        @media (min-width: 768px) {
+            #video-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; padding: 8px; }
+            .name-tag { font-size: 0.8rem; padding: 6px 10px; }
         }
-
-        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
-        .video-card.fullscreen video { object-fit: contain; }
-        
-        #card-local video { transform: scaleX(-1); }
-        #card-local.fullscreen video { transform: none; } 
-
-        .name-tag { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; color: white; z-index: 10; pointer-events: none; }
-
-        .conn-status { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 0.65rem; padding: 3px 10px; border-radius: 10px; z-index: 10; pointer-events: none; white-space: nowrap; }
-        .conn-status.retrying { color: #f0ad4e; background: rgba(240,173,78,0.2); }
-        .conn-status.ok { color: var(--success); background: rgba(46,196,182,0.15); }
-        .conn-status.fail { color: var(--danger); background: rgba(255,74,90,0.15); }
-
-        @media (max-width: 1024px) {
-            .controls-bar { padding: 0 70px; gap: 10px; }
-            .ctrl-btn { width: 44px; height: 44px; min-width: 44px; font-size: 1.1rem; }
-            .video-card { flex: 1 1 45%; max-width: 45%; height: 240px; }
-        }
-
-        @media (max-width: 768px) {
-            :root { --header-h: 60px; }
-            #settings { padding: 10px; }
-            .card { padding: 22px 20px; border-radius: 18px; }
-            h2 { font-size: 1.15rem; }
-            input, select { padding: 13px; font-size: 0.95rem; }
-            .row { padding: 10px 13px; font-size: 0.9rem; }
-            .btn-start { padding: 14px; font-size: 1rem; }
-            .controls-bar { padding: 0 8px; gap: 6px; justify-content: center; }
-            .ctrl-btn { width: 40px; height: 40px; min-width: 40px; font-size: 1rem; }
-            .room-badge { font-size: 0.72rem; padding: 6px 10px; right: 8px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
-            .peer-count { left: 8px; font-size: 0.7rem; padding: 5px 10px; }
-            #video-grid { padding: 8px; gap: 6px; }
-            .video-card { min-width: unset; flex: 1 1 100%; max-width: 100%; height: calc(100% / 4 - 8px); min-height: 120px; border-radius: 10px; }
-            .main-container { flex-direction: column; }
-            .name-tag { font-size: 0.7rem; padding: 4px 8px; bottom: 6px; right: 6px; }
-        }
-
-        @media (max-width: 380px) {
-            .controls-bar { gap: 4px; padding: 0 4px; }
-            .ctrl-btn { width: 36px; height: 36px; min-width: 36px; font-size: 0.9rem; }
-            .room-badge { font-size: 0.65rem; padding: 5px 8px; max-width: 90px; }
-            .card { padding: 18px 15px; }
-        }
-
-        @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
-            :root { --header-h: 50px; }
-            .video-card { min-height: 100px; height: 100%; flex: 1 1 50%; }
+        @media (max-width: 767px) {
             #video-grid { padding: 6px; }
         }
     </style>
@@ -155,7 +118,7 @@
     const connectedPeers = {};   // peerId -> MediaConnection
     const dataConns = {};        // peerId -> DataConnection (for mesh discovery)
     let audioCtx = null;
-    const speakingDetectors = {};
+    const audioRouters = {};     // peerId -> { source, gainNode, stop() }  (audio routing + speaking detection)
     let isHost = false;
 
     // ==================== ICE SERVERS (Free Only) ====================
@@ -227,14 +190,12 @@
     }
 
     function updatePeerCount() {
-        // Count actual remote video cards (everything except card-local)
         const allCards = document.querySelectorAll('#video-grid .video-card');
         const remoteCount = Array.from(allCards).filter(c => c.id !== 'card-local').length;
         const el = document.getElementById('peer-count');
         if (el) el.innerText = remoteCount > 0 ? (remoteCount + ' نفر') : 'منتظر دیگران...';
     }
 
-    // Also refresh count periodically to stay in sync
     setInterval(updatePeerCount, 3000);
 
     function extractNameFromId(peerId) {
@@ -242,7 +203,6 @@
     }
 
     // ==================== CURRENT STREAM ====================
-    // Returns what we should send right now (screen+mic if sharing, else camera+mic)
     function buildCurrentStream() {
         if (isScreenSharing && screenStream && screenStream.getVideoTracks().length > 0) {
             const s = new MediaStream();
@@ -253,40 +213,99 @@
         return myStream;
     }
 
-    // ==================== SPEAKING DETECTOR ====================
-    function setupSpeakingDetector(id, stream) {
+    // ==================== AUDIO ROUTING (AudioContext) ====================
+    // All remote audio is routed through AudioContext instead of video elements.
+    // This solves: (1) browser limits on simultaneous audio elements,
+    // (2) createMediaStreamSource interference with video audio.
+    // Video elements are ALL muted — audio goes: source → analyser → gain → destination.
+
+    function routeRemoteAudio(id, stream) {
         if (!stream || !stream.getAudioTracks().length) return;
-        if (speakingDetectors[id]) { speakingDetectors[id].stop(); delete speakingDetectors[id]; }
+
+        // Clean up previous routing for this peer
+        if (audioRouters[id]) { audioRouters[id].stop(); delete audioRouters[id]; }
+
+        // Ensure AudioContext exists (created during user gesture in initPeer)
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+
         const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.6;
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.6;
+
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1.0;
+
         const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);
+        source.connect(analyser);       // For speaking detection
+        source.connect(gainNode);        // For audio output
+        gainNode.connect(audioCtx.destination);  // → Speakers!
+
         const buf = new Uint8Array(analyser.frequencyBinCount);
         let active = true;
+
         (function loop() {
             if (!active) return;
             analyser.getByteFrequencyData(buf);
-            let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i];
+            let sum = 0;
+            for (let i = 0; i < buf.length; i++) sum += buf[i];
             const card = document.getElementById(id);
             if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
             requestAnimationFrame(loop);
         })();
-        speakingDetectors[id] = { stop: () => { active = false; source.disconnect(); } };
+
+        audioRouters[id] = {
+            stop: () => {
+                active = false;
+                try { source.disconnect(); } catch(e) {}
+                try { gainNode.disconnect(); } catch(e) {}
+            }
+        };
+    }
+
+    function stopAudioRouting(id) {
+        if (audioRouters[id]) { audioRouters[id].stop(); delete audioRouters[id]; }
+    }
+
+    // ==================== LOCAL SPEAKING DETECTOR ====================
+    // Local audio doesn't need AudioContext routing (video is muted anyway),
+    // but we still want the visual speaking indicator for ourselves.
+    let localSpeakingLoop = null;
+    function setupLocalSpeakingDetector(stream) {
+        if (!stream || !stream.getAudioTracks().length) return;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+
+        if (localSpeakingLoop) { cancelAnimationFrame(localSpeakingLoop); localSpeakingLoop = null; }
+
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.6;
+        const source = audioCtx.createMediaStreamSource(stream);
+        // Only connect to analyser, NOT to destination (we don't want to hear ourselves)
+        source.connect(analyser);
+
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+
+        (function loop() {
+            analyser.getByteFrequencyData(buf);
+            let sum = 0;
+            for (let i = 0; i < buf.length; i++) sum += buf[i];
+            const card = document.getElementById('card-local');
+            if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
+            localSpeakingLoop = requestAnimationFrame(loop);
+        })();
     }
 
     // ==================== DATA CONNECTION (Mesh Discovery) ====================
-    // Lightweight DataConnection used ONLY to discover other peers in the room.
-    // When a new peer connects, the existing peer sends them the list of other peers.
-    // The new peer then calls each peer on that list → full mesh.
 
     function handleDataConnection(conn) {
         conn.on('open', () => {
             dataConns[conn.peer] = conn;
             console.log('[Data] open with', conn.peer);
 
-            // Send the list of OTHER peers I'm connected to
             const others = Object.keys(connectedPeers).filter(id => id !== conn.peer);
             if (others.length > 0) {
                 console.log('[Data] sending peer list to', conn.peer, ':', others);
@@ -310,7 +329,6 @@
         if (connectedPeers[peerId] || peerId === myId) return;
         console.log('[Mesh] connecting to', peerId);
         makeCallWithRetry(peerId, buildCurrentStream(), 0, false);
-        // Open data connection for future discovery
         if (!dataConns[peerId]) {
             const dc = peer.connect(peerId, { reliable: true });
             handleDataConnection(dc);
@@ -322,6 +340,17 @@
         myName = document.getElementById('username-input').value.trim() || "کاربر ناشناس";
         targetPeerId = document.getElementById('target-peer-id').value || null;
         isHost = !targetPeerId;
+
+        // Create AudioContext HERE during user gesture (button click)
+        // This ensures it's in 'running' state and won't be blocked by autoplay policy
+        if (!audioCtx) {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('[AudioCtx] created during user gesture, state:', audioCtx.state);
+            } catch(e) {
+                console.error('[AudioCtx] creation failed:', e);
+            }
+        }
 
         const submitBtn = document.getElementById('btn-submit');
         submitBtn.disabled = true;
@@ -348,25 +377,22 @@
 
             peer = new Peer(myId, peerConfig);
 
-            // --- Peer is open ---
             peer.on('open', () => {
                 document.getElementById('settings').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 addVideoTrack('card-local', myStream, myName + " (شما)", true);
-                setupSpeakingDetector('card-local', myStream);
+                setupLocalSpeakingDetector(myStream);
                 updatePeerCount();
 
                 if (targetPeerId) {
                     showConnStatus('در حال اتصال...', 'retrying');
-                    // Call the host
                     makeCallWithRetry(targetPeerId, buildCurrentStream(), 0, true);
-                    // Open data connection for mesh discovery
                     const dc = peer.connect(targetPeerId, { reliable: true });
                     handleDataConnection(dc);
                 }
             });
 
-            // --- Incoming call (anyone can call us) ---
+            // --- Incoming call ---
             peer.on('call', (incomingCall) => {
                 const pid = incomingCall.peer;
                 const oldCall = connectedPeers[pid];
@@ -376,7 +402,6 @@
                 connectedPeers[pid] = incomingCall;
                 updatePeerCount();
 
-                // Answer with current stream (screen if sharing, else camera)
                 incomingCall.answer(buildCurrentStream());
                 setupCallListeners(incomingCall, pid);
 
@@ -391,12 +416,10 @@
                 });
             });
 
-            // --- Incoming data connection ---
             peer.on('connection', (conn) => {
                 handleDataConnection(conn);
             });
 
-            // --- Errors ---
             peer.on('error', (err) => {
                 console.error('[Peer] error:', err.type, err);
                 if (err.type === 'unavailable-id') {
@@ -405,7 +428,6 @@
                 } else if (err.type === 'network' || err.type === 'server-error') {
                     alert('خطای شبکه. صفحه را رفرش کنید.');
                 }
-                // peer-unavailable handled by retry mechanism
             });
 
             peer.on('disconnected', () => {
@@ -422,16 +444,16 @@
     // ==================== CALL HANDLING ====================
     function setupCallListeners(call, peerId) {
         call.on('stream', (remoteStream) => {
-            console.log('[Call] stream from', extractNameFromId(peerId));
+            console.log('[Call] stream from', extractNameFromId(peerId), '- tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
             addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            setupSpeakingDetector(peerId, remoteStream);
+            routeRemoteAudio(peerId, remoteStream);
             hideConnStatus();
         });
         call.on('close', () => {
-            // Only remove video if this is still the active call
             if (connectedPeers[peerId] === call) {
                 console.log('[Call] closed:', extractNameFromId(peerId));
                 removeVideoTrack(peerId);
+                stopAudioRouting(peerId);
                 updatePeerCount();
             }
         });
@@ -455,12 +477,22 @@
         let resolved = false;
 
         const onSuccess = (remoteStream) => {
-            if (resolved) return; resolved = true;
-            console.log('[Call] connected to', extractNameFromId(peerId));
+            if (resolved) return;
+
+            // RACE CONDITION GUARD: Don't overwrite if an incoming call has taken over
+            if (connectedPeers[peerId] && connectedPeers[peerId] !== call) {
+                console.log('[Call] outgoing superseded by incoming for', extractNameFromId(peerId), '- skipping');
+                resolved = true;
+                try { call.close(); } catch(e) {}
+                return;
+            }
+
+            resolved = true;
+            console.log('[Call] connected to', extractNameFromId(peerId), '- tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
             connectedPeers[peerId] = call;
             updatePeerCount();
             addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            setupSpeakingDetector(peerId, remoteStream);
+            routeRemoteAudio(peerId, remoteStream);
             if (showAlert) hideConnStatus();
         };
 
@@ -486,7 +518,11 @@
         const existing = document.getElementById(id);
         if (existing) {
             const vid = existing.querySelector('video');
-            if (vid && vid.srcObject !== stream) vid.srcObject = stream;
+            if (vid && vid.srcObject !== stream) {
+                vid.srcObject = stream;
+                // Re-route audio when stream changes
+                if (!isLocal) routeRemoteAudio(id, stream);
+            }
             return;
         }
         const grid = document.getElementById('video-grid');
@@ -499,18 +535,23 @@
         };
         const video = document.createElement('video');
         video.autoplay = true; video.playsInline = true;
-        if (isLocal) video.muted = true;
+        // ALL videos are muted — remote audio goes through AudioContext
+        video.muted = true;
         video.srcObject = stream;
         const tag = document.createElement('div');
         tag.className = 'name-tag'; tag.innerText = label;
         card.appendChild(video); card.appendChild(tag); grid.appendChild(card);
+        updatePeerCount();
+
+        // Route remote audio through AudioContext
+        if (!isLocal) routeRemoteAudio(id, stream);
     }
 
     function removeVideoTrack(id) {
         const card = document.getElementById(id);
         if (card) card.remove();
         delete connectedPeers[id];
-        if (speakingDetectors[id]) { speakingDetectors[id].stop(); delete speakingDetectors[id]; }
+        stopAudioRouting(id);
     }
 
     // ==================== AUDIO / VIDEO TOGGLE ====================
@@ -533,7 +574,6 @@
                 const screenTrack = screenStream.getVideoTracks()[0];
                 console.log('[Screen] got track:', screenTrack.label);
 
-                // Update local preview
                 const localVid = document.querySelector('#card-local video');
                 if (localVid) localVid.srcObject = screenStream;
                 document.getElementById('card-local').style.transform = "none";
@@ -542,7 +582,6 @@
                 sendStream.addTrack(screenTrack);
                 if (myStream.getAudioTracks().length > 0) sendStream.addTrack(myStream.getAudioTracks()[0]);
 
-                // Try replaceTrack or safe recall for each peer
                 const entries = Object.entries(connectedPeers);
                 for (const [pid, call] of entries) {
                     await switchToScreen(pid, call, sendStream, screenTrack);
@@ -575,7 +614,7 @@
             console.warn('[Screen] replaceTrack failed:', e.message || e);
         }
 
-        // Method 2: Safe Recall (new call first, close old only after confirmed)
+        // Method 2: Safe Recall
         console.log('[Screen] safe recall for', extractNameFromId(peerId));
         showConnStatus('اشتراک صفحه...', 'retrying');
 
@@ -588,7 +627,7 @@
             connectedPeers[peerId] = newCall;
             try { existingCall.close(); } catch(e) {}
             addVideoTrack(peerId, rs, extractNameFromId(peerId), false);
-            setupSpeakingDetector(peerId, rs);
+            routeRemoteAudio(peerId, rs);
             hideConnStatus();
         });
         newCall.on('close', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
@@ -618,7 +657,6 @@
                     }
                 } catch(e) {}
             }
-            // Safe recall back
             const existingCall = call;
             const nc = peer.call(pid, myStream);
             if (!nc) continue;
@@ -628,7 +666,7 @@
                 connectedPeers[pid] = nc;
                 try { existingCall.close(); } catch(e) {}
                 addVideoTrack(pid, rs, extractNameFromId(pid), false);
-                setupSpeakingDetector(pid, rs);
+                routeRemoteAudio(pid, rs);
             });
             nc.on('error', () => { if (!done) { done = true; try { nc.close(); } catch(e) {}}});
             setTimeout(() => { if (!done) { done = true; try { nc.close(); } catch(e) {}}}, 10000);
