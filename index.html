@@ -227,10 +227,15 @@
     }
 
     function updatePeerCount() {
-        const count = Object.keys(connectedPeers).length;
+        // Count actual remote video cards (everything except card-local)
+        const allCards = document.querySelectorAll('#video-grid .video-card');
+        const remoteCount = Array.from(allCards).filter(c => c.id !== 'card-local').length;
         const el = document.getElementById('peer-count');
-        if (el) el.innerText = count > 0 ? (count + ' نفر') : 'منتظر دیگران...';
+        if (el) el.innerText = remoteCount > 0 ? (remoteCount + ' نفر') : 'منتظر دیگران...';
     }
+
+    // Also refresh count periodically to stay in sync
+    setInterval(updatePeerCount, 3000);
 
     function extractNameFromId(peerId) {
         try { return decodeURIComponent(peerId.split('_name_')[1]) || "کاربر"; } catch(e) { return "کاربر"; }
