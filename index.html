@@ -5,65 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mahdi Call - گروهی</title>
     <style>
-        :root { 
-            --bg: #0b0c10; --surface: #1f2833; --primary: #45f3ff; 
-            --danger: #ff4a5a; --success: #2ec4b6; --text: #ffffff; 
-            --header-h: 70px;
+        :root {
+            --bg: #0b0c10; --surface: #1f2833; --primary: #45f3ff;
+            --danger: #ff4a5a; --success: #2ec4b6; --text: #ffffff;
+            --header-h: 70px; --chat-w: 300px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; outline: none; }
-        body { background-color: var(--bg); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
+        body { background: var(--bg); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
 
-        #settings { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11,12,16,0.98); z-index: 300; display: flex; justify-content: center; align-items: center; padding: 15px; overflow-y: auto; }
+        /* ===== SETTINGS ===== */
+        #settings { position: fixed; inset: 0; background: rgba(11,12,16,0.98); z-index: 300; display: flex; justify-content: center; align-items: center; padding: 15px; }
         .card { background: var(--surface); padding: 30px; border-radius: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; border: 1px solid #2f3e46; }
         h2 { margin-bottom: 15px; font-weight: 700; color: var(--primary); font-size: 1.3rem; }
         p { color: #aaa; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
         input, select { width: 100%; padding: 15px; background: #0b0c10; border: 1px solid #2f3e46; color: white; border-radius: 12px; margin-bottom: 15px; font-size: 1rem; text-align: center; }
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 12px; }
-        
         .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #444; border-radius: 26px; transition: 0.3s; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #444; border-radius: 26px; transition: 0.3s; }
         .slider:before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
         .switch input:checked + .slider { background: var(--success); }
         .switch input:checked + .slider:before { transform: translateX(20px); }
-
         .btn-start { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--primary), #00b4d8); color: #000; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 8px; }
         .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-start:hover:not(:disabled) { transform: scale(1.02); }
+        #status-msg { color: #aaa; font-size: 0.8rem; margin-top: 10px; min-height: 20px; }
 
+        /* ===== APP ===== */
         #app { display: none; flex-direction: column; height: 100vh; }
         .controls-bar { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #2f3e46; flex-shrink: 0; position: relative; }
-        .room-badge { background: rgba(69,243,255,0.1); color: var(--primary); padding: 8px 14px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid rgba(69,243,255,0.2); transition: 0.3s; white-space: nowrap; }
-        .room-badge:hover { background: rgba(69,243,255,0.2); }
+        .room-badge { background: rgba(69,243,255,0.1); color: var(--primary); padding: 8px 14px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid rgba(69,243,255,0.2); white-space: nowrap; }
         .peer-count { color: var(--success); font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
-        .ctrl-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #2f3e46; color: white; font-size: 1.1rem; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ctrl-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #2f3e46; color: white; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s; position: relative; }
         .ctrl-btn:hover { background: #3d5166; }
         .ctrl-btn.off { background: var(--danger); }
         .ctrl-btn.active { background: var(--success); color: #000; }
+        .ctrl-btn .badge { position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; font-size: 0.6rem; width: 18px; height: 18px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; }
+        .ctrl-btn .badge.show { display: flex; }
         .conn-status { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; padding: 3px 12px; border-radius: 10px; white-space: nowrap; }
         .conn-status.retrying { background: rgba(255,165,0,0.2); color: orange; }
         .conn-status.fail { background: rgba(255,74,90,0.2); color: var(--danger); }
 
-        .main-container { flex: 1; overflow: hidden; position: relative; }
+        /* ===== VIDEO GRID ===== */
+        .main-container { flex: 1; overflow: hidden; position: relative; transition: margin-left 0.3s; }
+        .main-container.shifted { margin-left: var(--chat-w); }
         #video-grid { display: grid; gap: 4px; padding: 4px; height: 100%; width: 100%; }
         .video-card { background: var(--surface); border-radius: 10px; overflow: hidden; position: relative; min-height: 0; }
         .video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
         .name-tag { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 8px; background: rgba(0,0,0,0.7); font-size: 0.7rem; text-align: center; border-radius: 0 0 10px 10px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .video-card.speaking .name-tag { background: var(--success); color: #000; font-weight: 700; }
-        .video-card.fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 200; border-radius: 0; }
-        .video-card.fullscreen .name-tag { font-size: 1rem; padding: 8px 16px; }
-        .audio-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; flex-shrink: 0; transition: background 0.3s; }
-        .audio-dot.active { background: var(--success); }
-        .tap-unmute { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.85rem; cursor: pointer; z-index: 10; display: none; border: 1px solid var(--primary); }
+        .video-card.fullscreen { position: fixed !important; inset: 0; width: 100vw !important; height: 100vh !important; z-index: 200; border-radius: 0; }
+        .audio-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; flex-shrink: 0; transition: 0.3s; }
+        .audio-dot.on { background: var(--success); }
 
-        #status-msg { color: #aaa; font-size: 0.8rem; margin-top: 10px; min-height: 20px; }
+        /* ===== CHAT PANEL ===== */
+        .chat-panel { position: fixed; top: 0; right: calc(-1 * var(--chat-w)); width: var(--chat-w); height: 100vh; background: var(--surface); border-left: 1px solid #2f3e46; z-index: 250; display: flex; flex-direction: column; transition: right 0.3s; }
+        .chat-panel.open { right: 0; }
+        .chat-header { padding: 14px 16px; border-bottom: 1px solid #2f3e46; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .chat-header h3 { font-size: 1rem; color: var(--primary); }
+        .chat-close { background: none; border: none; color: #aaa; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
+        .chat-close:hover { color: white; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        .chat-msg { max-width: 90%; padding: 8px 12px; border-radius: 12px; font-size: 0.82rem; line-height: 1.5; word-break: break-word; }
+        .chat-msg.self { align-self: flex-end; background: rgba(69,243,255,0.15); border-bottom-left: 4px; }
+        .chat-msg.other { align-self: flex-start; background: rgba(255,255,255,0.07); border-bottom-right: 4px; }
+        .chat-msg .sender { font-size: 0.7rem; font-weight: 700; margin-bottom: 2px; }
+        .chat-msg .text { white-space: pre-wrap; }
+        .chat-msg .time { font-size: 0.6rem; color: #666; margin-top: 3px; }
+        .chat-file-box { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; margin-top: 4px; }
+        .chat-file-box .fname { font-size: 0.78rem; color: var(--primary); margin-bottom: 4px; word-break: break-all; }
+        .chat-file-box .fsize { font-size: 0.68rem; color: #888; margin-bottom: 6px; }
+        .chat-file-box .fbtn { display: inline-block; padding: 5px 14px; background: var(--primary); color: #000; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .chat-file-box .fbtn:hover { opacity: 0.85; }
+        .chat-file-box .fprogress { font-size: 0.7rem; color: #aaa; }
+        .chat-sys { text-align: center; font-size: 0.7rem; color: #666; padding: 4px 0; }
+        .chat-input-area { padding: 10px; border-top: 1px solid #2f3e46; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .chat-input { flex: 1; padding: 10px 12px; background: #0b0c10; border: 1px solid #2f3e46; color: white; border-radius: 10px; font-size: 0.85rem; min-width: 0; }
+        .chat-input::placeholder { color: #555; }
+        .chat-send { width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--primary); color: #000; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .chat-file-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: #2f3e46; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .chat-file-btn:hover { background: #3d5166; }
+        #chat-file-input { display: none; }
 
         @media (min-width: 768px) {
             #video-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; padding: 8px; }
-            .name-tag { font-size: 0.8rem; padding: 6px 10px; }
+            :root { --chat-w: 340px; }
         }
         @media (max-width: 767px) {
-            #video-grid { padding: 6px; }
+            :root { --chat-w: 85vw; }
+            .main-container.shifted { margin-left: 0; }
+            .chat-panel { width: 85vw; right: calc(-1 * 85vw); }
         }
     </style>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -75,25 +107,19 @@
     <div class="card">
         <h2>اتاق تماس گروهی (تا ۱۰ نفر)</h2>
         <p id="welcome-note">نام خود را وارد کنید. اگر با لینک دعوت آمده‌اید، مستقیم دکمه ورود را بزنید.</p>
-        
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
-
         <div class="row">
             <span>🎙️ میکروفون</span>
             <label class="switch"><input type="checkbox" id="opt-mic" checked><span class="slider"></span></label>
         </div>
-
-        <div class="row" style="flex-direction: column; align-items: stretch; gap: 8px;">
-            <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <div style="display:flex;justify-content:space-between;width:100%;">
                 <span>📷 دوربین</span>
-                <label class="switch"><input type="checkbox" id="opt-cam" checked onchange="document.getElementById('camera-select-wrapper').style.display = this.checked ? 'block' : 'none'"><span class="slider"></span></label>
+                <label class="switch"><input type="checkbox" id="opt-cam" checked onchange="document.getElementById('camera-select-wrapper').style.display=this.checked?'block':'none'"><span class="slider"></span></label>
             </div>
-            <div id="camera-select-wrapper" style="margin-top: 5px;">
-                <select id="video-source"></select>
-            </div>
+            <div id="camera-select-wrapper"><select id="video-source"></select></div>
         </div>
-
         <button class="btn-start" id="btn-submit" onclick="initPeer()">ورود به تماس</button>
         <div id="status-msg"></div>
     </div>
@@ -106,573 +132,453 @@
         <button class="ctrl-btn" id="btn-mic" onclick="toggleAudio()"><i class="fas fa-microphone"></i></button>
         <button class="ctrl-btn" id="btn-cam" onclick="toggleVideo()"><i class="fas fa-video"></i></button>
         <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()"><i class="fas fa-desktop"></i></button>
+        <button class="ctrl-btn" id="btn-chat" onclick="toggleChat()"><i class="fas fa-comment"></i><span class="badge" id="chat-badge">0</span></button>
         <button class="ctrl-btn off" onclick="location.reload()"><i class="fas fa-phone-slash"></i></button>
     </div>
-    
-    <div class="main-container">
+
+    <div class="main-container" id="main-container">
         <div id="video-grid"></div>
+    </div>
+
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+            <h3>چت گروهی</h3>
+            <button class="chat-close" onclick="toggleChat()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+            <input type="file" id="chat-file-input" onchange="handleFileSelect(event)">
+            <button class="chat-file-btn" onclick="document.getElementById('chat-file-input').click()"><i class="fas fa-paperclip"></i></button>
+            <input type="text" class="chat-input" id="chat-input" placeholder="پیام بنویسید..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="chat-send" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
 </div>
 
 <script>
-    // ==================== VARIABLES ====================
-    let myStream, peer, myId, targetPeerId = null, myName;
-    let isScreenSharing = false, screenStream;
-    const connectedPeers = {};   // peerId -> MediaConnection
-    const dataConns = {};        // peerId -> DataConnection (for mesh discovery)
-    let audioCtx = null;         // AudioContext only used for LOCAL speaking indicator
-    const speakingPolls = {};    // peerId -> intervalId (remote speaking detection via getStats)
-    let isHost = false;
+// ==================== VARIABLES ====================
+let myStream, peer, myId, targetPeerId = null, myName;
+let isScreenSharing = false, screenStream;
+const connectedPeers = {};
+const dataConns = {};
+let audioCtx = null;
+const speakingPolls = {};
+let isHost = false;
 
-    // ==================== ICE SERVERS (Free Only) ====================
-    const peerConfig = {
-        config: {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                { urls: 'stun:stun.cloudflare.com:3478' },
-                { urls: 'stun:stun.fbsbx.com:3478' },
-                { urls: 'stun:stun.stunprotocol.org:3478' },
-                { urls: 'stun:stunserver2024.stunprotocol.org:3478' },
-                { urls: 'stun:stun.nextcloud.com:3478' },
-                { urls: 'stun:stun.86dd.eu:3478' },
-                {
-                    urls: ['turn:turn.evan-brass.net:3478', 'turn:turn.evan-brass.net:3478?transport=tcp'],
-                    username: 'user', credential: 'password'
-                }
-            ],
-            iceCandidatePoolSize: 10
+// Chat variables
+let chatOpen = false;
+let unreadCount = 0;
+const fileReceivers = {};   // fileId -> { sender, name, size, mime, chunks[], received, total }
+const sentFileIds = {};     // fileId -> true (to not show our own sent file as received)
+
+// ==================== ICE SERVERS ====================
+const peerConfig = {
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:stun.cloudflare.com:3478' },
+            { urls: 'stun:stun.fbsbx.com:3478' },
+            { urls: 'stun:stun.stunprotocol.org:3478' },
+            { urls: 'stun:stunserver2024.stunprotocol.org:3478' },
+            { urls: 'stun:stun.nextcloud.com:3478' },
+            { urls: 'stun:stun.86dd.eu:3478' },
+            { urls: ['turn:turn.evan-brass.net:3478','turn:turn.evan-brass.net:3478?transport=tcp'], username:'user', credential:'password' }
+        ],
+        iceCandidatePoolSize: 10
+    }
+};
+
+// ==================== UTILS ====================
+function extractNameFromId(pid) { try { return decodeURIComponent(pid.split('_name_')[1])||"کاربر"; } catch(e) { return "کاربر"; } }
+function formatTime(ts) { const d=new Date(ts); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+    if (bytes < 1073741824) return (bytes/1048576).toFixed(1) + ' MB';
+    return (bytes/1073741824).toFixed(2) + ' GB';
+}
+function getNameColor(name) {
+    const c = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8','#20c997','#339af0','#f06595','#a9e34b'];
+    let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h);
+    return c[Math.abs(h)%c.length];
+}
+function ab2b64(buf) { const b=new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function b642ab(b64) { const s=atob(b64); const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++) b[i]=s.charCodeAt(i); return b.buffer; }
+
+function showConnStatus(t,type) { let el=document.getElementById('conn-indicator'); if(!el){el=document.createElement('div');el.id='conn-indicator';el.className='conn-status';document.querySelector('.controls-bar').appendChild(el);} el.className='conn-status '+type; el.innerText=t; }
+function hideConnStatus() { const el=document.getElementById('conn-indicator'); if(el)el.remove(); }
+function updatePeerCount() { const n=document.querySelectorAll('#video-grid .video-card'); const r=Array.from(n).filter(c=>c.id!=='card-local').length; const el=document.getElementById('peer-count'); if(el) el.innerText=r>0?(r+' نفر'):'منتظر دیگران...'; }
+setInterval(updatePeerCount,3000);
+function copyRoomLink() { const l=window.location.origin+window.location.pathname+'?invite='+myId; navigator.clipboard.writeText(l).then(()=>alert('لینک دعوت کپی شد:\n'+l)); }
+
+// ==================== CHAT ====================
+function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+    document.getElementById('main-container').classList.toggle('shifted', chatOpen);
+    if (chatOpen) { unreadCount=0; updateChatBadge(); scrollChatBottom(); }
+}
+function updateChatBadge() {
+    const b=document.getElementById('chat-badge');
+    if(unreadCount>0){b.textContent=unreadCount>9?'9+':unreadCount;b.classList.add('show');}
+    else b.classList.remove('show');
+}
+function scrollChatBottom() { const m=document.getElementById('chat-messages'); setTimeout(()=>m.scrollTop=m.scrollHeight,50); }
+
+function sendToAll(data) { Object.values(dataConns).forEach(c=>{ try{c.send(data);}catch(e){} }); }
+
+function sendChat() {
+    const inp=document.getElementById('chat-input'); const text=inp.value.trim(); if(!text) return;
+    const msg={type:'chat-text',sender:myName,text:text,time:Date.now()};
+    sendToAll(msg);
+    appendChatMsg(msg,true);
+    inp.value='';
+}
+
+function appendChatMsg(data, isSelf) {
+    const box=document.getElementById('chat-messages');
+    const div=document.createElement('div');
+    div.className='chat-msg '+(isSelf?'self':'other');
+    div.innerHTML=`<div class="sender" style="color:${getNameColor(data.sender)}">${data.sender}</div><div class="text">${escHtml(data.text)}</div><div class="time">${formatTime(data.time)}</div>`;
+    box.appendChild(div);
+    if(!chatOpen){unreadCount++;updateChatBadge();} else scrollChatBottom();
+}
+
+function appendFileMsg(data, isSelf, downloadUrl) {
+    const box=document.getElementById('chat-messages');
+    const div=document.createElement('div');
+    div.className='chat-msg '+(isSelf?'self':'other');
+    let html=`<div class="sender" style="color:${getNameColor(data.sender)}">${data.sender}</div>`;
+    html+=`<div class="chat-file-box"><div class="fname"><i class="fas fa-file"></i> ${escHtml(data.fileName)}</div><div class="fsize">${formatSize(data.fileSize)}</div>`;
+    if(downloadUrl) html+=`<a class="fbtn" href="${downloadUrl}" download="${escHtml(data.fileName)}">دانلود</a>`;
+    html+=`</div><div class="time">${formatTime(data.time||Date.now())}</div>`;
+    div.innerHTML=html;
+    box.appendChild(div);
+    if(!chatOpen){unreadCount++;updateChatBadge();} else scrollChatBottom();
+}
+
+function appendSysMsg(text) {
+    const box=document.getElementById('chat-messages');
+    const div=document.createElement('div');
+    div.className='chat-sys'; div.innerText=text;
+    box.appendChild(div);
+    if(!chatOpen) { unreadCount++; updateChatBadge(); } else scrollChatBottom();
+}
+
+function appendFileProgress(data, isSelf, received, total) {
+    // Find existing progress msg or create one
+    let el = document.getElementById('fprog_'+data.fileId);
+    if(!el) {
+        const box=document.getElementById('chat-messages');
+        const wrap=document.createElement('div');
+        wrap.className='chat-msg '+(isSelf?'self':'other');
+        wrap.innerHTML=`<div class="sender" style="color:${getNameColor(data.sender)}">${data.sender}</div>
+            <div class="chat-file-box" id="fprog_${data.fileId}"><div class="fname"><i class="fas fa-file"></i> ${escHtml(data.fileName)}</div>
+            <div class="fsize">${formatSize(data.fileSize)}</div><div class="fprogress">در حال دریافت... ${Math.round(received/total*100)}%</div></div>
+            <div class="time">${formatTime(data.time||Date.now())}</div>`;
+        box.appendChild(wrap);
+        el = document.getElementById('fprog_'+data.fileId);
+    } else {
+        const prog = el.querySelector('.fprogress');
+        if(prog) prog.innerText = `در حال دریافت... ${Math.round(received/total*100)}%`;
+    }
+    if(!chatOpen){unreadCount++;updateChatBadge();} else scrollChatBottom();
+}
+
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ==================== FILE SENDING ====================
+async function handleFileSelect(e) {
+    const file = e.target.files[0]; if(!file) return;
+    e.target.value=''; // Reset so same file can be re-selected
+
+    const fileId = myId+'_'+Date.now();
+    sentFileIds[fileId]=true;
+
+    // Show in our own chat
+    appendFileMsg({sender:myName,fileName:file.name,fileSize:file.size,time:Date.now()},true,null);
+    appendSysMsg('در حال ارسال فایل...');
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const CHUNK=64*1024;
+        const totalChunks=Math.ceil(buffer.byteLength/CHUNK);
+
+        // Send metadata
+        sendToAll({type:'chat-file-start',sender:myName,fileId,fileName:file.name,fileSize:file.size,mimeType:file.type||'application/octet-stream',totalChunks,time:Date.now()});
+
+        // Send chunks
+        for(let i=0;i<totalChunks;i++){
+            const start=i*CHUNK;
+            const end=Math.min(start+CHUNK,buffer.byteLength);
+            const b64=ab2b64(buffer.slice(start,end));
+            sendToAll({type:'chat-file-chunk',fileId,chunkIndex:i,data:b64});
+            // Small delay every 20 chunks to prevent buffer overflow
+            if(i%20===0) await new Promise(r=>setTimeout(r,10));
         }
-    };
 
-    // ==================== INIT ====================
-    window.onload = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('invite')) {
-            targetPeerId = params.get('invite');
-            document.getElementById('target-peer-id').value = targetPeerId;
-            document.getElementById('welcome-note').innerText = "شما دعوت شده‌اید! نام خود را وارد کرده و ورود بزنید.";
-            document.getElementById('welcome-note').style.color = "#2ec4b6";
-        }
-        navigator.mediaDevices.enumerateDevices().then(devices => {
-            const sel = document.getElementById('video-source');
-            devices.forEach(d => {
-                if (d.kind === 'videoinput') {
-                    const opt = document.createElement('option');
-                    opt.value = d.deviceId;
-                    opt.textContent = d.label || ('دوربین ' + (sel.options.length + 1));
-                    sel.appendChild(opt);
-                }
-            });
-        }).catch(() => {});
-    };
-
-    function copyRoomLink() {
-        const link = window.location.origin + window.location.pathname + '?invite=' + myId;
-        navigator.clipboard.writeText(link).then(() => alert('لینک دعوت کپی شد:\n' + link));
+        sendToAll({type:'chat-file-end',fileId});
+        appendSysMsg('فایل ارسال شد ✅');
+    } catch(err) {
+        appendSysMsg('خطا در ارسال فایل: '+err.message);
     }
+}
 
-    function showConnStatus(text, type) {
-        let el = document.getElementById('conn-indicator');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'conn-indicator';
-            el.className = 'conn-status';
-            document.querySelector('.controls-bar').appendChild(el);
-        }
-        el.className = 'conn-status ' + type;
-        el.innerText = text;
-    }
-
-    function hideConnStatus() {
-        const el = document.getElementById('conn-indicator');
-        if (el) el.remove();
-    }
-
-    function updatePeerCount() {
-        const allCards = document.querySelectorAll('#video-grid .video-card');
-        const remoteCount = Array.from(allCards).filter(c => c.id !== 'card-local').length;
-        const el = document.getElementById('peer-count');
-        if (el) el.innerText = remoteCount > 0 ? (remoteCount + ' نفر') : 'منتظر دیگران...';
-    }
-
-    setInterval(updatePeerCount, 3000);
-
-    function extractNameFromId(peerId) {
-        try { return decodeURIComponent(peerId.split('_name_')[1]) || "کاربر"; } catch(e) { return "کاربر"; }
-    }
-
-    // ==================== CURRENT STREAM ====================
-    function buildCurrentStream() {
-        if (isScreenSharing && screenStream && screenStream.getVideoTracks().length > 0) {
-            const s = new MediaStream();
-            s.addTrack(screenStream.getVideoTracks()[0]);
-            if (myStream.getAudioTracks().length > 0) s.addTrack(myStream.getAudioTracks()[0]);
-            return s;
-        }
-        return myStream;
-    }
-
-    // ==================== REMOTE SPEAKING DETECTION (via getStats) ====================
-    // Uses WebRTC getStats() instead of AudioContext createMediaStreamSource.
-    // This avoids any interference with video element audio playback.
-    // Works for any number of remote peers without browser audio limits.
-
-    function startSpeakingDetection(peerId) {
-        stopSpeakingDetection(peerId);
-
-        const checkAudio = async () => {
-            const call = connectedPeers[peerId];
-            if (!call || !call.peerConnection) {
-                stopSpeakingDetection(peerId);
-                return;
-            }
-
-            try {
-                const stats = await call.peerConnection.getStats();
-                let audioLevel = -1;
-
-                for (const [, stat] of stats) {
-                    if (stat.type === 'inbound-rtp' && stat.kind === 'audio') {
-                        audioLevel = (stat.audioLevel !== undefined) ? stat.audioLevel : -1;
-                        break;
-                    }
-                }
-
-                const card = document.getElementById(peerId);
-                if (!card) { stopSpeakingDetection(peerId); return; }
-
-                // Update speaking indicator
-                if (audioLevel >= 0) {
-                    card.classList.toggle('speaking', audioLevel > 0.02);
-                }
-
-                // Update audio dot
-                const dot = card.querySelector('.audio-dot');
-                if (dot) {
-                    dot.classList.toggle('active', audioLevel >= 0);
-                }
-
-            } catch(e) {
-                // Silently ignore stats errors
-            }
+// ==================== FILE RECEIVING ====================
+function handleFileData(data) {
+    if(data.type==='chat-file-start' && !sentFileIds[data.fileId]) {
+        fileReceivers[data.fileId]={
+            sender:data.sender, name:data.fileName, size:data.fileSize,
+            mime:data.mimeType, chunks:new Array(data.totalChunks),
+            received:0, total:data.totalChunks, time:data.time
         };
-
-        checkAudio();
-        speakingPolls[peerId] = setInterval(checkAudio, 300);
+        appendFileProgress(data, false, 0, data.totalChunks);
     }
-
-    function stopSpeakingDetection(peerId) {
-        if (speakingPolls[peerId]) {
-            clearInterval(speakingPolls[peerId]);
-            delete speakingPolls[peerId];
+    else if(data.type==='chat-file-chunk' && fileReceivers[data.fileId]) {
+        const r=fileReceivers[data.fileId];
+        if(data.chunkIndex<r.total && !r.chunks[data.chunkIndex]) {
+            r.chunks[data.chunkIndex]=b642ab(data.data);
+            r.received++;
+            appendFileProgress({sender:r.sender,fileName:r.name,fileSize:r.size,fileId:data.fileId,time:r.time},false,r.received,r.total);
         }
     }
-
-    // ==================== LOCAL SPEAKING DETECTOR (AudioContext) ====================
-    // Only used for local video indicator. Single source, no interference.
-    let localActive = false;
-    let localSource = null;
-
-    function setupLocalSpeakingDetector(stream) {
-        if (!stream || !stream.getAudioTracks().length) return;
-
-        // Clean up old
-        if (localSource) { try { localSource.disconnect(); } catch(e) {} }
-        localActive = false;
-
-        try {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        } catch(e) { return; }
-
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.6;
-        localSource = audioCtx.createMediaStreamSource(stream);
-        // Connect ONLY to analyser (NOT to destination — we don't want to hear ourselves)
-        localSource.connect(analyser);
-
-        const buf = new Uint8Array(analyser.frequencyBinCount);
-        localActive = true;
-
-        (function loop() {
-            if (!localActive) return;
-            try { analyser.getByteFrequencyData(buf); } catch(e) { localActive = false; return; }
-            let sum = 0;
-            for (let i = 0; i < buf.length; i++) sum += buf[i];
-            const card = document.getElementById('card-local');
-            if (card) card.classList.toggle('speaking', (sum / buf.length) > 12);
-            requestAnimationFrame(loop);
-        })();
+    else if(data.type==='chat-file-end' && fileReceivers[data.fileId]) {
+        const r=fileReceivers[data.fileId];
+        // Remove progress, show download
+        const progEl=document.getElementById('fprog_'+data.fileId);
+        if(progEl) progEl.remove();
+        // Assemble file
+        const blob=new Blob(r.chunks.filter(Boolean),{type:r.mime});
+        const url=URL.createObjectURL(blob);
+        appendFileMsg({sender:r.sender,fileName:r.name,fileSize:r.size,time:r.time},false,url);
+        delete fileReceivers[data.fileId];
     }
+}
 
-    // ==================== DATA CONNECTION (Mesh Discovery) ====================
+// ==================== SPEAKING DETECTION (getStats) ====================
+function startSpeakingDetection(peerId) {
+    stopSpeakingDetection(peerId);
+    const check=async()=>{
+        const call=connectedPeers[peerId];
+        if(!call||!call.peerConnection){stopSpeakingDetection(peerId);return;}
+        try{
+            const stats=await call.peerConnection.getStats();
+            let level=-1;
+            for(const[,s]of stats){if(s.type==='inbound-rtp'&&s.kind==='audio'){level=(s.audioLevel!==undefined)?s.audioLevel:-1;break;}}
+            const card=document.getElementById(peerId);
+            if(!card){stopSpeakingDetection(peerId);return;}
+            if(level>=0) card.classList.toggle('speaking',level>0.02);
+            const dot=card.querySelector('.audio-dot');
+            if(dot) dot.classList.toggle('on',level>=0);
+        }catch(e){}
+    };
+    check();
+    speakingPolls[peerId]=setInterval(check,300);
+}
+function stopSpeakingDetection(pid){if(speakingPolls[pid]){clearInterval(speakingPolls[pid]);delete speakingPolls[pid];}}
 
-    function handleDataConnection(conn) {
-        conn.on('open', () => {
-            dataConns[conn.peer] = conn;
-            console.log('[Data] open with', conn.peer);
+// Local speaking (AudioContext - single source, safe)
+let localActive=false,localSource=null;
+function setupLocalSpeakingDetector(stream){
+    if(!stream||!stream.getAudioTracks().length)return;
+    if(localSource){try{localSource.disconnect();}catch(e){}} localActive=false;
+    try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}catch(e){return;}
+    const a=audioCtx.createAnalyser();a.fftSize=512;a.smoothingTimeConstant=0.6;
+    localSource=audioCtx.createMediaStreamSource(stream);localSource.connect(a);
+    const buf=new Uint8Array(a.frequencyBinCount);localActive=true;
+    (function loop(){if(!localActive)return;try{a.getByteFrequencyData(buf);}catch(e){localActive=false;return;}
+    let s=0;for(let i=0;i<buf.length;i++)s+=buf[i];
+    const c=document.getElementById('card-local');if(c)c.classList.toggle('speaking',(s/buf.length)>12);
+    requestAnimationFrame(loop);})();
+}
 
-            const others = Object.keys(connectedPeers).filter(id => id !== conn.peer);
-            if (others.length > 0) {
-                console.log('[Data] sending peer list to', conn.peer, ':', others);
-                try { conn.send({ type: 'peer-list', peers: others }); } catch(e) {}
-            }
+// ==================== DATA CONNECTION ====================
+function handleDataConnection(conn){
+    conn.on('open',()=>{
+        dataConns[conn.peer]=conn;
+        const others=Object.keys(connectedPeers).filter(id=>id!==conn.peer);
+        if(others.length>0) try{conn.send({type:'peer-list',peers:others});}catch(e){}
+    });
+    conn.on('data',(data)=>{
+        if(!data||!data.type)return;
+        if(data.type==='peer-list') (data.peers||[]).forEach(pid=>connectToPeerIfNeeded(pid));
+        else if(data.type==='chat-text') appendChatMsg(data,data.sender===myName);
+        else if(data.type==='chat-file-start'||data.type==='chat-file-chunk'||data.type==='chat-file-end') handleFileData(data);
+    });
+    conn.on('close',()=>{if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];});
+    conn.on('error',()=>{if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];});
+}
+
+function connectToPeerIfNeeded(pid){
+    if(connectedPeers[pid]||pid===myId)return;
+    makeCallWithRetry(pid,buildCurrentStream(),0,false);
+    if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+}
+
+// ==================== PEER INIT ====================
+async function initPeer(){
+    myName=document.getElementById('username-input').value.trim()||'کاربر ناشناس';
+    targetPeerId=document.getElementById('target-peer-id').value||null;
+    isHost=!targetPeerId;
+    const btn=document.getElementById('btn-submit');btn.disabled=true;
+    document.getElementById('status-msg').innerText='در حال اتصال...';
+    try{
+        const wantCam=document.getElementById('camera-select-wrapper').style.display!=='none';
+        const wantMic=document.getElementById('opt-mic').checked;
+        const camId=document.getElementById('video-source').value;
+        myStream=await navigator.mediaDevices.getUserMedia({
+            audio:wantMic?{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}:false,
+            video:wantCam?{deviceId:camId?{exact:camId}:undefined}:false
         });
-
-        conn.on('data', (data) => {
-            if (!data) return;
-            if (data.type === 'peer-list') {
-                console.log('[Data] got peer list:', data.peers);
-                (data.peers || []).forEach(pid => connectToPeerIfNeeded(pid));
-            }
-        });
-
-        conn.on('close', () => { delete dataConns[conn.peer]; });
-        conn.on('error', () => { delete dataConns[conn.peer]; });
-    }
-
-    function connectToPeerIfNeeded(peerId) {
-        if (connectedPeers[peerId] || peerId === myId) return;
-        console.log('[Mesh] connecting to', peerId);
-        makeCallWithRetry(peerId, buildCurrentStream(), 0, false);
-        if (!dataConns[peerId]) {
-            const dc = peer.connect(peerId, { reliable: true });
-            handleDataConnection(dc);
-        }
-    }
-
-    // ==================== PEER INIT ====================
-    async function initPeer() {
-        myName = document.getElementById('username-input').value.trim() || "کاربر ناشناس";
-        targetPeerId = document.getElementById('target-peer-id').value || null;
-        isHost = !targetPeerId;
-
-        const submitBtn = document.getElementById('btn-submit');
-        submitBtn.disabled = true;
-        document.getElementById('status-msg').innerText = "در حال اتصال...";
-
-        try {
-            const wantCam = document.getElementById('camera-select-wrapper').style.display !== 'none';
-            const wantMic = document.getElementById('opt-mic').checked;
-            const camId = document.getElementById('video-source').value;
-
-            myStream = await navigator.mediaDevices.getUserMedia({
-                audio: wantMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } : false,
-                video: wantCam ? { deviceId: camId ? { exact: camId } : undefined } : false
-            });
-
-            let savedId = localStorage.getItem('mahdi_call_peer_id');
-            if (!savedId) {
-                savedId = "user_" + Math.random().toString(36).substr(2, 9) + "_name_" + encodeURIComponent(myName);
-            } else {
-                savedId = savedId.split('_name_')[0] + "_name_" + encodeURIComponent(myName);
-            }
-            localStorage.setItem('mahdi_call_peer_id', savedId);
-            myId = savedId;
-
-            peer = new Peer(myId, peerConfig);
-
-            peer.on('open', () => {
-                document.getElementById('settings').style.display = 'none';
-                document.getElementById('app').style.display = 'flex';
-                addVideoTrack('card-local', myStream, myName + " (شما)", true);
-                setupLocalSpeakingDetector(myStream);
-                updatePeerCount();
-
-                if (targetPeerId) {
-                    showConnStatus('در حال اتصال...', 'retrying');
-                    makeCallWithRetry(targetPeerId, buildCurrentStream(), 0, true);
-                    const dc = peer.connect(targetPeerId, { reliable: true });
-                    handleDataConnection(dc);
-                }
-            });
-
-            peer.on('call', (incomingCall) => {
-                const pid = incomingCall.peer;
-                const oldCall = connectedPeers[pid];
-                console.log('[Incoming] call from', extractNameFromId(pid), '(replacing:', !!oldCall, ')');
-
-                connectedPeers[pid] = incomingCall;
-                updatePeerCount();
-
-                incomingCall.answer(buildCurrentStream());
-                setupCallListeners(incomingCall, pid);
-
-                if (oldCall) { try { oldCall.close(); } catch(e) {} }
-
-                Object.entries(dataConns).forEach(([id, conn]) => {
-                    if (id !== pid) {
-                        try { conn.send({ type: 'peer-list', peers: [pid] }); } catch(e) {}
-                    }
-                });
-            });
-
-            peer.on('connection', (conn) => {
-                handleDataConnection(conn);
-            });
-
-            peer.on('error', (err) => {
-                console.error('[Peer] error:', err.type, err);
-                if (err.type === 'unavailable-id') {
-                    alert('این شناسه قبلا گرفته شده. صفحه را رفرش کنید.');
-                    localStorage.removeItem('mahdi_call_peer_id');
-                } else if (err.type === 'network' || err.type === 'server-error') {
-                    alert('خطای شبکه. صفحه را رفرش کنید.');
-                }
-            });
-
-            peer.on('disconnected', () => {
-                console.warn('[Peer] signaling disconnected');
-                if (!peer.destroyed) peer.reconnect();
-            });
-
-        } catch (err) {
-            alert("خطا: " + err.message);
-            submitBtn.disabled = false;
-        }
-    }
-
-    // ==================== CALL HANDLING ====================
-    function setupCallListeners(call, peerId) {
-        call.on('stream', (remoteStream) => {
-            console.log('[Call] stream from', extractNameFromId(peerId), '- tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
-            addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            hideConnStatus();
-        });
-        call.on('close', () => {
-            if (connectedPeers[peerId] === call) {
-                console.log('[Call] closed:', extractNameFromId(peerId));
-                removeVideoTrack(peerId);
-                updatePeerCount();
-            }
-        });
-        call.on('error', (err) => console.error('[Call] error:', peerId, err));
-    }
-
-    function makeCallWithRetry(peerId, stream, attempt, showAlert) {
-        const maxRetries = 3;
-        const maxWait = 6000;
-
-        console.log('[Call] attempt', attempt + 1, 'to', extractNameFromId(peerId));
-        if (showAlert) showConnStatus(attempt > 0 ? ('تلاش ' + (attempt+1) + '...') : 'در حال اتصال...', 'retrying');
-
-        const call = peer.call(peerId, stream);
-        if (!call) {
-            if (attempt < maxRetries - 1) setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1, showAlert), 1500);
-            else if (showAlert) showConnStatus('اتصال برقرار نشد', 'fail');
-            return;
-        }
-
-        let resolved = false;
-
-        const onSuccess = (remoteStream) => {
-            if (resolved) return;
-
-            // RACE CONDITION GUARD: Don't overwrite if an incoming call has taken over
-            if (connectedPeers[peerId] && connectedPeers[peerId] !== call) {
-                console.log('[Call] outgoing superseded by incoming for', extractNameFromId(peerId), '- skipping');
-                resolved = true;
-                try { call.close(); } catch(e) {}
-                return;
-            }
-
-            resolved = true;
-            console.log('[Call] connected to', extractNameFromId(peerId), '- tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled));
-            connectedPeers[peerId] = call;
+        let sid=localStorage.getItem('mahdi_call_peer_id');
+        if(!sid) sid='user_'+Math.random().toString(36).substr(2,9)+'_name_'+encodeURIComponent(myName);
+        else sid=sid.split('_name_')[0]+'_name_'+encodeURIComponent(myName);
+        localStorage.setItem('mahdi_call_peer_id',sid); myId=sid;
+        peer=new Peer(myId,peerConfig);
+        peer.on('open',()=>{
+            document.getElementById('settings').style.display='none';
+            document.getElementById('app').style.display='flex';
+            addVideoTrack('card-local',myStream,myName+' (شما)',true);
+            setupLocalSpeakingDetector(myStream);
             updatePeerCount();
-            addVideoTrack(peerId, remoteStream, extractNameFromId(peerId), false);
-            if (showAlert) hideConnStatus();
-        };
-
-        const onFail = (reason) => {
-            if (resolved) return; resolved = true;
-            console.warn('[Call] failed:', reason);
-            try { call.close(); } catch(e) {}
-            if (attempt < maxRetries - 1) {
-                setTimeout(() => makeCallWithRetry(peerId, stream, attempt + 1, showAlert), 1500 + attempt * 1000);
-            } else if (showAlert) {
-                showConnStatus('اتصال برقرار نشد', 'fail');
+            if(targetPeerId){
+                showConnStatus('در حال اتصال...','retrying');
+                makeCallWithRetry(targetPeerId,buildCurrentStream(),0,true);
+                const dc=peer.connect(targetPeerId,{reliable:true});handleDataConnection(dc);
             }
-        };
-
-        call.on('stream', onSuccess);
-        call.on('close', () => { if (!resolved) onFail('closed'); });
-        call.on('error', (err) => onFail(err.type || 'error'));
-        setTimeout(() => { if (!resolved) onFail('timeout'); }, maxWait);
-    }
-
-    // ==================== VIDEO GRID ====================
-    function addVideoTrack(id, stream, label, isLocal) {
-        const existing = document.getElementById(id);
-        if (existing) {
-            const vid = existing.querySelector('video');
-            if (vid && vid.srcObject !== stream) {
-                vid.srcObject = stream;
-                vid.play().catch(() => {});
-                // Restart speaking detection for updated stream
-                if (!isLocal) startSpeakingDetection(id);
-            }
-            return;
-        }
-        const grid = document.getElementById('video-grid');
-        const card = document.createElement('div');
-        card.className = 'video-card'; card.id = id;
-        card.onclick = function() {
-            const fs = this.classList.contains('fullscreen');
-            document.querySelectorAll('.video-card').forEach(c => c.classList.remove('fullscreen'));
-            if (!fs) this.classList.add('fullscreen');
-        };
-        const video = document.createElement('video');
-        video.autoplay = true; video.playsInline = true;
-        // Only local video is muted. Remote videos play audio through the element.
-        video.muted = isLocal;
-        video.srcObject = stream;
-        // Explicit play() call to handle autoplay policy
-        video.play().catch(() => {
-            // If autoplay blocked, show tap-to-unmute hint
-            console.warn('[Video] autoplay blocked for', id);
         });
-
-        const tag = document.createElement('div');
-        tag.className = 'name-tag';
-        tag.innerHTML = '<span class="audio-dot"></span>' + label;
-        card.appendChild(video); card.appendChild(tag); grid.appendChild(card);
-        updatePeerCount();
-
-        // Start speaking detection for remote peers
-        if (!isLocal) startSpeakingDetection(id);
-    }
-
-    function removeVideoTrack(id) {
-        const card = document.getElementById(id);
-        if (card) card.remove();
-        delete connectedPeers[id];
-        stopSpeakingDetection(id);
-    }
-
-    // ==================== AUDIO / VIDEO TOGGLE ====================
-    function toggleAudio() {
-        const t = myStream.getAudioTracks()[0];
-        if (t) { t.enabled = !t.enabled; document.getElementById('btn-mic').classList.toggle('off', !t.enabled); }
-    }
-
-    function toggleVideo() {
-        const t = myStream.getVideoTracks()[0];
-        if (t) { t.enabled = !t.enabled; document.getElementById('btn-cam').classList.toggle('off', !t.enabled); }
-    }
-
-    // ==================== SCREEN SHARE (Safe Recall) ====================
-    async function toggleScreen() {
-        const btn = document.getElementById('btn-screen');
-        if (!isScreenSharing) {
-            try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                const screenTrack = screenStream.getVideoTracks()[0];
-                console.log('[Screen] got track:', screenTrack.label);
-
-                const localVid = document.querySelector('#card-local video');
-                if (localVid) localVid.srcObject = screenStream;
-                document.getElementById('card-local').style.transform = "none";
-
-                const sendStream = new MediaStream();
-                sendStream.addTrack(screenTrack);
-                if (myStream.getAudioTracks().length > 0) sendStream.addTrack(myStream.getAudioTracks()[0]);
-
-                const entries = Object.entries(connectedPeers);
-                for (const [pid, call] of entries) {
-                    await switchToScreen(pid, call, sendStream, screenTrack);
-                }
-
-                isScreenSharing = true;
-                btn.classList.add('active');
-                screenTrack.onended = () => stopScreenSharing();
-            } catch (e) {
-                console.error('[Screen] error:', e);
-            }
-        } else {
-            await stopScreenSharing();
-        }
-    }
-
-    async function switchToScreen(peerId, existingCall, sendStream, screenTrack) {
-        try {
-            const pc = existingCall.peerConnection;
-            if (pc && pc.getSenders) {
-                const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                if (vs) {
-                    await vs.replaceTrack(screenTrack);
-                    console.log('[Screen] replaceTrack OK for', extractNameFromId(peerId));
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn('[Screen] replaceTrack failed:', e.message || e);
-        }
-
-        console.log('[Screen] safe recall for', extractNameFromId(peerId));
-        showConnStatus('اشتراک صفحه...', 'retrying');
-
-        const newCall = peer.call(peerId, sendStream);
-        if (!newCall) { showConnStatus('اشتراک صفحه شکست', 'fail'); return; }
-
-        let done = false;
-        newCall.on('stream', (rs) => {
-            if (done) return; done = true;
-            connectedPeers[peerId] = newCall;
-            try { existingCall.close(); } catch(e) {}
-            addVideoTrack(peerId, rs, extractNameFromId(peerId), false);
-            hideConnStatus();
+        peer.on('call',(inc)=>{
+            const pid=inc.peer,old=connectedPeers[pid];
+            connectedPeers[pid]=inc;
+            updatePeerCount();
+            inc.answer(buildCurrentStream());
+            setupCallListeners(inc,pid);
+            if(old) try{old.close();}catch(e){}
+            // Notify others about new peer
+            Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
+            // Notify chat about new user
+            appendSysMsg(extractNameFromId(pid)+' به تماس پیوست');
         });
-        newCall.on('close', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
-        newCall.on('error', () => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }});
-        setTimeout(() => { if (!done) { done = true; try { newCall.close(); } catch(e) {} showConnStatus('اشتراک صفحه وصل نشد','fail'); }}, 10000);
-    }
+        peer.on('connection',(conn)=>handleDataConnection(conn));
+        peer.on('error',(err)=>{
+            if(err.type==='unavailable-id'){alert('این شناسه قبلا گرفته شده. رفرش کنید.');localStorage.removeItem('mahdi_call_peer_id');}
+            else if(err.type==='network'||err.type==='server-error') alert('خطای شبکه. رفرش کنید.');
+        });
+        peer.on('disconnected',()=>{if(!peer.destroyed)peer.reconnect();});
+    }catch(err){alert('خطا: '+err.message);btn.disabled=false;}
+}
 
-    async function stopScreenSharing() {
-        if (!isScreenSharing) return;
-        if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-
-        const localVid = document.querySelector('#card-local video');
-        if (localVid) localVid.srcObject = myStream;
-        const localCard = document.getElementById('card-local');
-        if (localCard) localCard.style.transform = "";
-
-        const camTrack = myStream.getVideoTracks()[0];
-        const entries = Object.entries(connectedPeers);
-
-        for (const [pid, call] of entries) {
-            if (camTrack) {
-                try {
-                    const pc = call.peerConnection;
-                    if (pc && pc.getSenders) {
-                        const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if (vs) { await vs.replaceTrack(camTrack); continue; }
-                    }
-                } catch(e) {}
-            }
-            const existingCall = call;
-            const nc = peer.call(pid, myStream);
-            if (!nc) continue;
-            let done = false;
-            nc.on('stream', (rs) => {
-                if (done) return; done = true;
-                connectedPeers[pid] = nc;
-                try { existingCall.close(); } catch(e) {}
-                addVideoTrack(pid, rs, extractNameFromId(pid), false);
-            });
-            nc.on('error', () => { if (!done) { done = true; try { nc.close(); } catch(e) {}}});
-            setTimeout(() => { if (!done) { done = true; try { nc.close(); } catch(e) {}}}, 10000);
-        }
-
-        isScreenSharing = false;
-        document.getElementById('btn-screen').classList.remove('active');
+// ==================== CALL HANDLING ====================
+function setupCallListeners(call,pid){
+    call.on('stream',(rs)=>{
+        addVideoTrack(pid,rs,extractNameFromId(pid),false);
         hideConnStatus();
+    });
+    call.on('close',()=>{
+        if(connectedPeers[pid]===call){
+            removeVideoTrack(pid);
+            updatePeerCount();
+            appendSysMsg(extractNameFromId(pid)+' تماس را ترک کرد');
+        }
+    });
+    call.on('error',(e)=>console.error('[Call] error:',pid,e));
+}
+
+function makeCallWithRetry(pid,stream,attempt,showAlert){
+    const maxR=3,maxW=6000;
+    if(showAlert)showConnStatus(attempt>0?('تلاش '+(attempt+1)+'...'):'در حال اتصال...','retrying');
+    const call=peer.call(pid,stream);
+    if(!call){if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1500);else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');return;}
+    let done=false;
+    const ok=(rs)=>{
+        if(done)return;
+        if(connectedPeers[pid]&&connectedPeers[pid]!==call){done=true;try{call.close();}catch(e){}return;}
+        done=true;connectedPeers[pid]=call;updatePeerCount();
+        addVideoTrack(pid,rs,extractNameFromId(pid),false);
+        if(showAlert)hideConnStatus();
+    };
+    const fail=(r)=>{if(done)return;done=true;try{call.close();}catch(e){}
+        if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1500+attempt*1000);
+        else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');};
+    call.on('stream',ok);
+    call.on('close',()=>{if(!done)fail('closed');});
+    call.on('error',(e)=>fail(e.type||'error'));
+    setTimeout(()=>{if(!done)fail('timeout');},maxW);
+}
+
+// ==================== VIDEO GRID ====================
+function addVideoTrack(id,stream,label,isLocal){
+    const ex=document.getElementById(id);
+    if(ex){const v=ex.querySelector('video');if(v&&v.srcObject!==stream){v.srcObject=stream;v.play().catch(()=>{});if(!isLocal)startSpeakingDetection(id);}return;}
+    const g=document.getElementById('video-grid');
+    const card=document.createElement('div');card.className='video-card';card.id=id;
+    card.onclick=function(){const f=this.classList.contains('fullscreen');document.querySelectorAll('.video-card').forEach(c=>c.classList.remove('fullscreen'));if(!f)this.classList.add('fullscreen');};
+    const vid=document.createElement('video');vid.autoplay=true;vid.playsInline=true;vid.muted=isLocal;vid.srcObject=stream;
+    vid.play().catch(()=>{});
+    const tag=document.createElement('div');tag.className='name-tag';
+    tag.innerHTML='<span class="audio-dot"></span>'+escHtml(label);
+    card.appendChild(vid);card.appendChild(tag);g.appendChild(card);
+    updatePeerCount();
+    if(!isLocal)startSpeakingDetection(id);
+}
+
+function removeVideoTrack(id){
+    const c=document.getElementById(id);if(c)c.remove();
+    delete connectedPeers[id];stopSpeakingDetection(id);
+    // Clean up data connection
+    if(dataConns[id]){try{dataConns[id].close();}catch(e){}delete dataConns[id];}
+}
+
+// ==================== TOGGLES ====================
+function toggleAudio(){const t=myStream.getAudioTracks()[0];if(t){t.enabled=!t.enabled;document.getElementById('btn-mic').classList.toggle('off',!t.enabled);}}
+function toggleVideo(){const t=myStream.getVideoTracks()[0];if(t){t.enabled=!t.enabled;document.getElementById('btn-cam').classList.toggle('off',!t.enabled);}}
+
+// ==================== SCREEN SHARE ====================
+async function toggleScreen(){
+    const btn=document.getElementById('btn-screen');
+    if(!isScreenSharing){
+        try{
+            screenStream=await navigator.mediaDevices.getDisplayMedia({video:true});
+            const st=screenStream.getVideoTracks()[0];
+            const lv=document.querySelector('#card-local video');if(lv)lv.srcObject=screenStream;
+            document.getElementById('card-local').style.transform='none';
+            const ss=new MediaStream();ss.addTrack(st);
+            if(myStream.getAudioTracks().length)ss.addTrack(myStream.getAudioTracks()[0]);
+            for(const[pid,call]of Object.entries(connectedPeers))await switchToScreen(pid,call,ss,st);
+            isScreenSharing=true;btn.classList.add('active');
+            st.onended=()=>stopScreenSharing();
+        }catch(e){console.error('[Screen]',e);}
+    }else await stopScreenSharing();
+}
+async function switchToScreen(pid,old,ss,st){
+    try{const pc=old.peerConnection;if(pc&&pc.getSenders){const v=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(v){await v.replaceTrack(st);return;}}}catch(e){}
+    showConnStatus('اشتراک صفحه...','retrying');
+    const nc=peer.call(pid,ss);if(!nc){showConnStatus('اشتراک صفحه شکست','fail');return;}
+    let d=false;
+    nc.on('stream',(rs)=>{if(d)return;d=true;connectedPeers[pid]=nc;try{old.close();}catch(e){}addVideoTrack(pid,rs,extractNameFromId(pid),false);hideConnStatus();});
+    nc.on('close',()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}});
+    nc.on('error',()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}});
+    setTimeout(()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}},10000);
+}
+async function stopScreenSharing(){
+    if(!isScreenSharing)return;
+    if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
+    const lv=document.querySelector('#card-local video');if(lv)lv.srcObject=myStream;
+    const lc=document.getElementById('card-local');if(lc)lc.style.transform='';
+    const ct=myStream.getVideoTracks()[0];
+    for(const[pid,call]of Object.entries(connectedPeers)){
+        if(ct){try{const pc=call.peerConnection;if(pc&&pc.getSenders){const v=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(v){await v.replaceTrack(ct);continue;}}}catch(e){}}
+        const old=call;const nc=peer.call(pid,myStream);if(!nc)continue;let d=false;
+        nc.on('stream',(rs)=>{if(d)return;d=true;connectedPeers[pid]=nc;try{old.close();}catch(e){}addVideoTrack(pid,rs,extractNameFromId(pid),false);});
+        nc.on('error',()=>{if(!d){d=true;try{nc.close();}catch(e){}}});
+        setTimeout(()=>{if(!d){d=true;try{nc.close();}catch(e){}}},10000);
     }
+    isScreenSharing=false;document.getElementById('btn-screen').classList.remove('active');hideConnStatus();
+}
 </script>
 </body>
 </html>
