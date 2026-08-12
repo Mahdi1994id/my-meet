@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NexCall</title>
+    <title>Zumi</title>
     <style>
         /* ===== DESIGN TOKENS ===== */
         :root {
@@ -597,7 +597,7 @@
 
 <div id="settings">
     <div class="card">
-        <h2 id="settings-title">NexCall</h2>
+        <h2 id="settings-title">Zumi</h2>
         <p id="welcome-note">نام خود را وارد کنید و ورود بزنید تا لینک اتاق بگیرید.</p>
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
@@ -1124,7 +1124,12 @@ function handleDataConnection(conn){
         else if(data.type==='chat-text')appendChatMsg(data,data.sender===myName);
         else if(data.type.startsWith('chat-file'))handleFileData(data);
     });
-    conn.on('close',()=>{if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];});
+    conn.on('close',()=>{
+        if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];
+        // Fallback: if media call didn't fire close, clean up video card after delay
+        const pid=conn.peer;
+        setTimeout(()=>{if(connectedPeers[pid]||document.getElementById(pid)){removeVideoTrack(pid);updatePeerCount();appendSysMsg(getPeerName(pid)+' از تماس خارج شد');}},3000);
+    });
     conn.on('error',()=>{if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];});
 }
 
@@ -1315,6 +1320,7 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
         if(connectedPeers[pid]&&connectedPeers[pid]!==call){done=true;try{call.close();}catch(e){}return;}
         done=true;connectedPeers[pid]=call;updatePeerCount();
         addVideoTrack(pid,rs,getPeerName(pid),false);if(showAlert)hideConnStatus();
+        setupCallListeners(call,pid);
     };
     const fail=(r)=>{
         if(done)return;done=true;try{call.close();}catch(e){}
