@@ -392,7 +392,78 @@
         .chat-file-btn:hover { color: var(--text); background: rgba(255,255,255,0.12); }
         #chat-file-input { display: none; }
 
-        /* ===== RESPONSIVE ===== */
+        /* ===== IN-ROOM SETTINGS MODAL ===== */
+    .settings-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        z-index: 250; display: none; justify-content: center; align-items: center;
+        padding: 20px; animation: fadeIn 0.25s var(--spring);
+    }
+    .settings-overlay.open { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .settings-modal {
+        background: var(--surface-solid); border: 0.5px solid var(--separator);
+        border-radius: var(--radius-lg); width: 100%; max-width: 420px;
+        max-height: 85vh; overflow-y: auto; padding: 24px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        animation: modalIn 0.35s var(--spring);
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .settings-modal h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+    .settings-modal h3 button { background: none; border: none; color: var(--text-secondary); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color 0.2s, background 0.2s; }
+    .settings-modal h3 button:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .settings-section { margin-bottom: 20px; }
+    .settings-section:last-child { margin-bottom: 0; }
+    .settings-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .settings-select {
+        width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.4);
+        border: 0.5px solid var(--separator); color: var(--text);
+        border-radius: var(--radius-sm); font-size: 0.85rem; outline: none;
+        font-family: inherit; cursor: pointer; appearance: auto;
+        transition: border-color 0.25s var(--spring);
+    }
+    .settings-select:focus { border-color: var(--primary); }
+    .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+    .theme-card {
+        border-radius: var(--radius-sm); overflow: hidden; cursor: pointer;
+        border: 2px solid transparent; transition: all 0.25s var(--spring);
+        position: relative;
+    }
+    .theme-card:hover { transform: scale(1.04); }
+    .theme-card.active { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
+    .theme-preview { height: 52px; }
+    .theme-name { font-size: 0.65rem; padding: 4px 6px; text-align: center; color: var(--text-secondary); background: rgba(0,0,0,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .theme-card.active .theme-name { color: var(--primary); font-weight: 600; }
+    /* ===== THEME BACKGROUND EFFECTS ===== */
+    .theme-bg-effect {
+        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.4; transition: opacity 0.5s;
+    }
+    /* Liquid blobs */
+    .theme-bg-effect.liquid .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: blobMove 20s ease-in-out infinite alternate; }
+    .theme-bg-effect.liquid .blob:nth-child(1) { width: 400px; height: 400px; background: rgba(108,92,231,0.15); top: -100px; left: -100px; }
+    .theme-bg-effect.liquid .blob:nth-child(2) { width: 350px; height: 350px; background: rgba(0,206,201,0.12); bottom: -80px; right: -80px; animation-delay: -7s; }
+    .theme-bg-effect.liquid .blob:nth-child(3) { width: 300px; height: 300px; background: rgba(162,155,254,0.1); top: 50%; left: 50%; animation-delay: -14s; }
+    @keyframes blobMove { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.1); } 100% { transform: translate(-20px,30px) scale(0.95); } }
+    /* Lava glow */
+    .theme-bg-effect.lava .blob { position: absolute; border-radius: 50%; filter: blur(100px); animation: lavaPulse 8s ease-in-out infinite alternate; }
+    .theme-bg-effect.lava .blob:nth-child(1) { width: 500px; height: 500px; background: rgba(239,68,68,0.12); bottom: -200px; left: 20%; }
+    .theme-bg-effect.lava .blob:nth-child(2) { width: 400px; height: 400px; background: rgba(249,115,22,0.1); bottom: -150px; right: 10%; animation-delay: -4s; }
+    @keyframes lavaPulse { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-30px) scale(1.08); } }
+    /* Orbit stars */
+    .theme-bg-effect.orbit .star { position: absolute; width: 2px; height: 2px; background: rgba(245,158,11,0.6); border-radius: 50%; animation: starTwinkle 3s ease-in-out infinite; }
+    @keyframes starTwinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    /* Vortex glow */
+    .theme-bg-effect.vortex .blob { position: absolute; border-radius: 50%; filter: blur(120px); animation: vortexSpin 25s linear infinite; }
+    .theme-bg-effect.vortex .blob:nth-child(1) { width: 600px; height: 600px; background: conic-gradient(from 0deg, rgba(192,132,252,0.1), rgba(232,121,249,0.05), rgba(147,51,234,0.1), rgba(192,132,252,0.05)); top: 50%; left: 50%; transform-origin: center; }
+    @keyframes vortexSpin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+    /* Parallax nebula */
+    .theme-bg-effect.parallax .blob { position: absolute; border-radius: 50%; filter: blur(100px); animation: nebulaFloat 15s ease-in-out infinite alternate; }
+    .theme-bg-effect.parallax .blob:nth-child(1) { width: 500px; height: 500px; background: rgba(6,182,212,0.08); top: -100px; right: -100px; }
+    .theme-bg-effect.parallax .blob:nth-child(2) { width: 400px; height: 400px; background: rgba(165,180,252,0.06); bottom: -100px; left: -100px; animation-delay: -8s; }
+    @keyframes nebulaFloat { 0% { transform: translate(0,0); } 100% { transform: translate(40px,30px); } }
+
+
+    /* ===== RESPONSIVE ===== */
         @media (min-width: 768px) {
             :root { --chat-w: 360px; }
             .video-card { border-radius: var(--radius-lg); }
@@ -454,6 +525,7 @@
         <button class="ctrl-btn" id="btn-cam" onclick="toggleVideo()"><i class="fas fa-video"></i></button>
         <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()"><i class="fas fa-desktop"></i></button>
         <button class="ctrl-btn" id="btn-chat" onclick="toggleChat()"><i class="fas fa-comment"></i><span class="badge" id="chat-badge">0</span></button>
+        <button class="ctrl-btn" id="btn-settings" onclick="openSettings()"><i class="fas fa-cog"></i></button>
         <button class="ctrl-btn end-call" onclick="endCall()"><i class="fas fa-phone-slash"></i></button>
     </div>
     <div class="main-container" id="main-container">
@@ -470,6 +542,28 @@
             <button class="chat-file-btn" onclick="document.getElementById('chat-file-input').click()"><i class="fas fa-paperclip"></i></button>
             <input type="text" class="chat-input" id="chat-input" placeholder="پیام بنویسید..." onkeydown="if(event.key==='Enter')sendChat()">
             <button class="chat-send" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Theme background effect -->
+<div class="theme-bg-effect" id="theme-bg"></div>
+
+<!-- In-room settings modal -->
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+    <div class="settings-modal">
+        <h3>تنظیمات <button onclick="closeSettings()"><i class="fas fa-times"></i></button></h3>
+        <div class="settings-section">
+            <div class="settings-label">میکروفون</div>
+            <select class="settings-select" id="inroom-mic"></select>
+        </div>
+        <div class="settings-section">
+            <div class="settings-label">اسپیکر</div>
+            <select class="settings-select" id="inroom-speaker"></select>
+        </div>
+        <div class="settings-section">
+            <div class="settings-label">تم</div>
+            <div class="theme-grid" id="inroom-themes"></div>
         </div>
     </div>
 </div>
@@ -501,6 +595,186 @@ const peerConfig = {
         ],iceCandidatePoolSize:10
     }
 };
+
+// ==================== THEME SYSTEM ====================
+const THEMES = {
+    'default': {
+        name: 'پیش‌فرض',
+        vars: { '--bg':'#000000','--surface':'rgba(28,28,30,0.72)','--surface-solid':'#1c1c1e','--surface2':'rgba(44,44,46,0.6)','--primary':'#0a84ff','--primary-glow':'rgba(10,132,255,0.12)','--danger':'#ff453a','--success':'#30d158','--warning':'#ffd60a','--text':'#f5f5f7','--text-secondary':'#98989d','--separator':'rgba(84,84,88,0.36)' },
+        preview: 'linear-gradient(135deg, #1c1c1e, #0a0a0a)',
+        bgEffect: ''
+    },
+    'liquid': {
+        name: 'Liquid Morph',
+        vars: { '--bg':'#0a0510','--surface':'rgba(40,20,60,0.75)','--surface-solid':'#1a0d2e','--surface2':'rgba(80,40,100,0.5)','--primary':'#6c5ce7','--primary-glow':'rgba(108,92,231,0.15)','--danger':'#ff6b6b','--success':'#00cec9','--warning':'#ffeaa7','--text':'#f0edff','--text-secondary':'#a29bfe','--separator':'rgba(108,92,231,0.2)' },
+        preview: 'linear-gradient(135deg, #6c5ce7, #00cec9)',
+        bgEffect: 'liquid'
+    },
+    'iso': {
+        name: '3D Isometric',
+        vars: { '--bg':'#0d1117','--surface':'rgba(22,30,40,0.8)','--surface-solid':'#161e28','--surface2':'rgba(35,50,65,0.5)','--primary':'#f0883e','--primary-glow':'rgba(240,136,62,0.15)','--danger':'#ff6b6b','--success':'#3fb950','--warning':'#d29922','--text':'#e6edf3','--text-secondary':'#8b949e','--separator':'rgba(48,54,61,0.7)' },
+        preview: 'linear-gradient(135deg, #f0883e, #161e28)',
+        bgEffect: ''
+    },
+    'vortex': {
+        name: '3D Vortex',
+        vars: { '--bg':'#0a0015','--surface':'rgba(30,10,50,0.8)','--surface-solid':'#1a0a30','--surface2':'rgba(60,20,90,0.5)','--primary':'#c084fc','--primary-glow':'rgba(192,132,252,0.15)','--danger':'#ff6b9d','--success':'#a78bfa','--warning':'#fbbf24','--text':'#f0e6ff','--text-secondary':'#b794f4','--separator':'rgba(147,51,234,0.2)' },
+        preview: 'linear-gradient(135deg, #c084fc, #e879f9)',
+        bgEffect: 'vortex'
+    },
+    'lava': {
+        name: 'Lava',
+        vars: { '--bg':'#0a0505','--surface':'rgba(40,15,10,0.8)','--surface-solid':'#1c0d0a','--surface2':'rgba(70,25,15,0.5)','--primary':'#ef4444','--primary-glow':'rgba(239,68,68,0.15)','--danger':'#ff6b6b','--success':'#f97316','--warning':'#fbbf24','--text':'#fef2f2','--text-secondary':'#fca5a5','--separator':'rgba(239,68,68,0.2)' },
+        preview: 'linear-gradient(135deg, #ef4444, #f97316)',
+        bgEffect: 'lava'
+    },
+    'orbit': {
+        name: '3D Orbit',
+        vars: { '--bg':'#060609','--surface':'rgba(20,18,30,0.8)','--surface-solid':'#14121e','--surface2':'rgba(40,35,55,0.5)','--primary':'#f59e0b','--primary-glow':'rgba(245,158,11,0.15)','--danger':'#ef4444','--success':'#22d3ee','--warning':'#fbbf24','--text':'#fefce8','--text-secondary':'#fde68a','--separator':'rgba(245,158,11,0.2)' },
+        preview: 'linear-gradient(135deg, #f59e0b, #14121e)',
+        bgEffect: 'orbit'
+    },
+    'parallax': {
+        name: '3D Parallax',
+        vars: { '--bg':'#050a14','--surface':'rgba(15,25,45,0.8)','--surface-solid':'#0f192d','--surface2':'rgba(25,45,75,0.5)','--primary':'#06b6d4','--primary-glow':'rgba(6,182,212,0.15)','--danger':'#f43f5e','--success':'#34d399','--warning':'#fbbf24','--text':'#ecfeff','--text-secondary':'#a5f3fc','--separator':'rgba(6,182,212,0.2)' },
+        preview: 'linear-gradient(135deg, #06b6d4, #a5b4fc)',
+        bgEffect: 'parallax'
+    }
+};
+let currentTheme = 'default';
+
+function applyTheme(id) {
+    const t = THEMES[id]; if (!t) return;
+    currentTheme = id;
+    const r = document.documentElement;
+    Object.entries(t.vars).forEach(([k, v]) => r.style.setProperty(k, v));
+    document.body.style.background = t.vars['--bg'];
+    // Background effect
+    const bgEl = document.getElementById('theme-bg');
+    bgEl.className = 'theme-bg-effect ' + (t.bgEffect || '');
+    if (t.bgEffect === 'orbit') {
+        bgEl.innerHTML = '';
+        for (let i = 0; i < 40; i++) {
+            const s = document.createElement('div'); s.className = 'star';
+            s.style.cssText = 'left:' + (Math.random()*100) + '%;top:' + (Math.random()*100) + '%;animation-delay:' + (Math.random()*3) + 's;width:' + (1+Math.random()*2) + 'px;height:' + (1+Math.random()*2) + 'px;';
+            bgEl.appendChild(s);
+        }
+    } else if (t.bgEffect === 'liquid' || t.bgEffect === 'lava' || t.bgEffect === 'vortex' || t.bgEffect === 'parallax') {
+        bgEl.innerHTML = '<div class="blob"></div><div class="blob"></div>' + (t.bgEffect === 'liquid' ? '<div class="blob"></div>' : '');
+    } else {
+        bgEl.innerHTML = '';
+    }
+    // Update active states on all theme grids
+    document.querySelectorAll('.theme-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.theme === id);
+    });
+    localStorage.setItem('mahdi_call_theme', id);
+}
+
+function buildThemeGrid(containerId) {
+    const container = document.getElementById(containerId); if (!container) return;
+    container.innerHTML = '';
+    Object.entries(THEMES).forEach(([id, t]) => {
+        const card = document.createElement('div');
+        card.className = 'theme-card' + (id === currentTheme ? ' active' : '');
+        card.dataset.theme = id;
+        card.onclick = function() { applyTheme(id); };
+        card.innerHTML = '<div class="theme-preview" style="background:' + t.preview + '"></div><div class="theme-name">' + t.name + '</div>';
+        container.appendChild(card);
+    });
+}
+
+// ==================== AUDIO DEVICE MANAGEMENT ====================
+let selectedMicId = null, selectedSpeakerId = null;
+
+async function enumerateAudioDevices() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter(d => d.kind === 'audioinput');
+        const speakers = devices.filter(d => d.kind === 'audiooutput');
+        const savedMic = localStorage.getItem('mahdi_call_mic');
+        const savedSpk = localStorage.getItem('mahdi_call_speaker');
+        populateInroomDevices(mics, speakers, savedMic, savedSpk);
+        navigator.mediaDevices.addEventListener('devicechange', () => enumerateAudioDevices());
+    } catch (e) { console.warn('[Audio] enumerate error:', e); }
+}
+
+function populateInroomDevices(mics, speakers, savedMic, savedSpk) {
+    const inMic = document.getElementById('inroom-mic');
+    const inSpk = document.getElementById('inroom-speaker');
+    if (!inMic || !inSpk) return;
+    inMic.innerHTML = ''; inSpk.innerHTML = '';
+    mics.forEach((d, i) => {
+        const o = document.createElement('option'); o.value = d.deviceId;
+        o.textContent = d.label || ('میکروفون ' + (i + 1)); inMic.appendChild(o);
+    });
+    speakers.forEach((d, i) => {
+        const o = document.createElement('option'); o.value = d.deviceId;
+        o.textContent = d.label || ('اسپیکر ' + (i + 1)); inSpk.appendChild(o);
+    });
+    if (savedMic && inMic.querySelector('option[value="' + savedMic + '"]')) inMic.value = savedMic;
+    if (savedSpk && inSpk.querySelector('option[value="' + savedSpk + '"]')) inSpk.value = savedSpk;
+
+    inMic.onchange = async function() {
+        localStorage.setItem('mahdi_call_mic', this.value);
+        await switchMic(this.value);
+    };
+    inSpk.onchange = function() {
+        localStorage.setItem('mahdi_call_speaker', this.value);
+        switchSpeaker(this.value);
+    };
+}
+
+async function switchMic(deviceId) {
+    try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+        const newTrack = newStream.getAudioTracks()[0];
+        if (!newTrack) { newStream.getTracks().forEach(t => t.stop()); return; }
+        // Replace track on all peer connections
+        for (const [pid, call] of Object.entries(connectedPeers)) {
+            try {
+                const pc = call.peerConnection;
+                if (pc && pc.getSenders) {
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                    if (sender) await sender.replaceTrack(newTrack);
+                }
+            } catch (e) {}
+        }
+        // Replace local stream audio track
+        const oldAudio = myStream.getAudioTracks()[0];
+        if (oldAudio) oldAudio.stop();
+        myStream.removeTrack(oldAudio);
+        myStream.addTrack(newTrack);
+        setupLocalSpeakingDetector(myStream);
+
+    } catch (e) { console.error('[Mic] switch error:', e); }
+}
+
+function switchSpeaker(deviceId) {
+    try {
+        document.querySelectorAll('video').forEach(v => {
+            if (v.setSinkId) v.setSinkId(deviceId).catch(() => {});
+        });
+
+    } catch (e) { console.error('[Speaker] switch error:', e); }
+}
+
+// ==================== SETTINGS MODAL ====================
+function openSettings() {
+    // Refresh device lists
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        const mics = devices.filter(d => d.kind === 'audioinput');
+        const speakers = devices.filter(d => d.kind === 'audiooutput');
+        populateInroomDevices(mics, speakers,
+            localStorage.getItem('mahdi_call_mic'),
+            localStorage.getItem('mahdi_call_speaker'));
+    }).catch(() => {});
+    buildThemeGrid('inroom-themes');
+    document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
 
 // ==================== UTILS ====================
 function extractNameFromId(pid){try{return decodeURIComponent(pid.split('_name_')[1])||"کاربر";}catch(e){return "کاربر";}}
@@ -754,8 +1028,11 @@ async function initPeer(){
         const wantCam=document.getElementById('camera-select-wrapper').style.display!=='none';
         const wantMic=document.getElementById('opt-mic').checked;
         const camId=document.getElementById('video-source').value;
+        const savedMicId=localStorage.getItem('mahdi_call_mic');
+        const audioConstraints=wantMic?{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}:false;
+        if(audioConstraints&&savedMicId)audioConstraints.deviceId={exact:savedMicId};
         myStream=await navigator.mediaDevices.getUserMedia({
-            audio:wantMic?{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}:false,
+            audio:audioConstraints,
             video:wantCam?{deviceId:camId?{exact:camId}:undefined}:false
         });
 
@@ -921,6 +1198,7 @@ function addVideoTrack(id,stream,label,isLocal){
         if(!f)this.classList.add('fullscreen');
     };
     const vid=document.createElement('video');vid.autoplay=true;vid.playsInline=true;vid.muted=isLocal;vid.srcObject=stream;vid.play().catch(()=>{});
+    const savedSpk2=localStorage.getItem('mahdi_call_speaker');if(savedSpk2&&vid.setSinkId)vid.setSinkId(savedSpk2).catch(()=>{});
     const tag=document.createElement('div');tag.className='name-tag';
     const dot=document.createElement('span');dot.className='audio-dot';
     tag.appendChild(dot);tag.appendChild(document.createTextNode(label));
@@ -992,6 +1270,10 @@ async function stopScreenSharing(){
 
 // ==================== WINDOW ONLOAD ====================
 window.onload=()=>{
+    // Apply saved theme
+    const savedTheme=localStorage.getItem('mahdi_call_theme')||'default';
+    applyTheme(savedTheme);
+
     const params=new URLSearchParams(window.location.search);
     const urlRoom=params.get('room');
     const urlInvite=params.get('invite');
