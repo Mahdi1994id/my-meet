@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mahdi Call</title>
+    <title>NexCall</title>
     <style>
         /* ===== DESIGN TOKENS ===== */
         :root {
@@ -472,7 +472,13 @@
         75% { border-radius: 50% 40% 60% 50%/40% 50% 30% 70%; }
         100% { border-radius: 60% 30% 40% 70%/50% 40% 60% 50%; transform: rotate(180deg) scale(1); }
     }
-    /* === 3D VORTEX === */
+    .theme-bg-effect.iso .iso-shadow-plane{position:absolute;top:0;left:0;right:0;bottom:0;z-index:2;pointer-events:none;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;padding:12px}
+    .theme-bg-effect.iso .iso-shadow-plane div{border-radius:16px;background:rgba(240,136,62,0.03);filter:blur(15px);transform:translateY(8px) scale(.97);animation:shadowPulse 4s ease-in-out infinite}
+    .theme-bg-effect.iso .iso-shadow-plane div:nth-child(2){animation-delay:1s}
+    .theme-bg-effect.iso .iso-shadow-plane div:nth-child(3){animation-delay:2s}
+    .theme-bg-effect.iso .iso-shadow-plane div:nth-child(4){animation-delay:3s}
+    @keyframes shadowPulse{0%,100%{opacity:.6}50%{opacity:1}}
+    /* === 3D VORTEX === ===
     .theme-bg-effect.vortex .vortex-bg { position: absolute; inset: 0; perspective: 800px; perspective-origin: 50% 50%; }
     .theme-bg-effect.vortex .tunnel-ring {
         position: absolute; top: 50%; left: 50%; width: var(--size); height: var(--size);
@@ -510,15 +516,15 @@
     /* === LAVA — cracks + magma glow + embers === */
     .theme-bg-effect.lava .lava-bg { position: absolute; inset: 0; }
     .theme-bg-effect.lava .lava-bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .theme-bg-effect.lava .crack { stroke: #ef4444; stroke-width: 1.5; fill: none; opacity: 0.3; stroke-dasharray: 200; stroke-dashoffset: 200; animation: crackdraw 4s ease-in-out infinite alternate; }
-    .theme-bg-effect.lava .crack:nth-child(2) { animation-delay: -1s; opacity: 0.2; stroke: #f97316; }
-    .theme-bg-effect.lava .crack:nth-child(3) { animation-delay: -2s; opacity: 0.25; stroke: #dc2626; }
+    .theme-bg-effect.lava .crack { stroke: #ff6d00; stroke-width: 1.5; fill: none; opacity: 0.3; stroke-dasharray: 200; stroke-dashoffset: 200; animation: crackdraw 4s ease-in-out infinite alternate; }
+    .theme-bg-effect.lava .crack:nth-child(2) { animation-delay: -1s; opacity: 0.2; stroke: #ffab00; }
+    .theme-bg-effect.lava .crack:nth-child(3) { animation-delay: -2s; opacity: 0.25; stroke: #ff3d00; }
     @keyframes crackdraw { 0% { stroke-dashoffset: 200; opacity: 0.1; } 50% { stroke-dashoffset: 0; opacity: 0.4; } 100% { stroke-dashoffset: -200; opacity: 0.1; } }
     .theme-bg-effect.lava .magmaglow { position: absolute; inset: 0; }
     .theme-bg-effect.lava .magmaglow .g { position: absolute; border-radius: 50%; filter: blur(80px); animation: mapulse 6s ease-in-out infinite alternate; }
-    .theme-bg-effect.lava .magmaglow .g:nth-child(1) { width: 400px; height: 400px; bottom: -10%; left: 20%; background: radial-gradient(circle,rgba(239,68,68,0.15),transparent 70%); animation-duration: 8s; }
-    .theme-bg-effect.lava .magmaglow .g:nth-child(2) { width: 300px; height: 300px; bottom: 10%; right: 10%; background: radial-gradient(circle,rgba(249,115,22,0.1),transparent 70%); animation-duration: 6s; animation-delay: -3s; }
-    .theme-bg-effect.lava .magmaglow .g:nth-child(3) { width: 350px; height: 350px; bottom: -5%; left: 50%; background: radial-gradient(circle,rgba(220,38,38,0.1),transparent 70%); animation-duration: 10s; animation-delay: -5s; }
+    .theme-bg-effect.lava .magmaglow .g:nth-child(1) { width: 400px; height: 400px; bottom: -10%; left: 20%; background: radial-gradient(circle,rgba(255,109,0,0.15),transparent 70%); animation-duration: 8s; }
+    .theme-bg-effect.lava .magmaglow .g:nth-child(2) { width: 300px; height: 300px; bottom: 10%; right: 10%; background: radial-gradient(circle,rgba(255,171,0,0.1),transparent 70%); animation-duration: 6s; animation-delay: -3s; }
+    .theme-bg-effect.lava .magmaglow .g:nth-child(3) { width: 350px; height: 350px; bottom: -5%; left: 50%; background: radial-gradient(circle,rgba(255,61,0,0.1),transparent 70%); animation-duration: 10s; animation-delay: -5s; }
     @keyframes mapulse { 0% { opacity: 0.5; transform: scale(1); } 100% { opacity: 1; transform: scale(1.15); } }
     .theme-bg-effect.lava .ember { position: absolute; bottom: 0; border-radius: 50%; animation: emberise linear infinite; }
     @keyframes emberise { 0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; } 10% { opacity: 0.9; } 50% { opacity: 0.6; transform: translateY(-50vh) translateX(15px) scale(0.7); } 90% { opacity: 0.3; } 100% { transform: translateY(-100vh) translateX(-10px) scale(0.3); opacity: 0; } }
@@ -591,7 +597,7 @@
 
 <div id="settings">
     <div class="card">
-        <h2 id="settings-title">Mahdi Call</h2>
+        <h2 id="settings-title">NexCall</h2>
         <p id="welcome-note">نام خود را وارد کنید و ورود بزنید تا لینک اتاق بگیرید.</p>
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
@@ -720,8 +726,8 @@ const THEMES = {
     },
     'lava': {
         name: 'Lava',
-        vars: { '--bg':'#0a0505','--surface':'rgba(10,5,5,0.65)','--surface-solid':'rgba(28,13,10,0.75)','--surface2':'rgba(70,25,15,0.4)','--primary':'#ef4444','--primary-glow':'rgba(239,68,68,0.15)','--danger':'#ff6b6b','--success':'#f97316','--warning':'#fbbf24','--text':'#fef2f2','--text-secondary':'#fca5a5','--separator':'rgba(239,68,68,0.2)' },
-        preview: 'linear-gradient(135deg, #ef4444, #f97316)',
+        vars: { '--bg':'#0a0808','--surface':'rgba(10,8,8,0.65)','--surface-solid':'rgba(10,8,8,0.75)','--surface2':'rgba(255,80,20,0.4)','--primary':'#ff6d00','--primary-glow':'rgba(255,109,0,0.15)','--danger':'#d32f2f','--success':'#ff9100','--warning':'#ffab00','--text':'#f5e6d8','--text-secondary':'rgba(255,200,150,0.4)','--separator':'rgba(255,109,0,0.15)' },
+        preview: 'linear-gradient(135deg, #ff6d00, #ff3d00)',
         bgEffect: 'lava'
     },
     'orbit': {
@@ -771,12 +777,12 @@ function applyTheme(id) {
         let h = '<div class="lava-bg"><svg><path class="crack" d="M0,200 Q100,180 150,220 T300,190 T500,210 T700,180 T900,200 T1100,190"/><path class="crack" d="M100,500 Q250,480 350,520 T550,490 T750,510 T950,480"/><path class="crack" d="M0,700 Q200,680 300,720 T600,690 T900,710"/></svg></div>';
         h += '<div class="magmaglow"><div class="g"></div><div class="g"></div><div class="g"></div></div>';
         h += '<div style="position:absolute;inset:0;overflow:hidden;">';
-        const emColors = ['#fbbf24','#f97316','#ef4444','#fde68a','#f59e0b'];
+        const emColors = ['#ffea00','#ff9100','#ffab00','#ff6d00','#ff3d00'];
         for (let i = 0; i < 25; i++) { const x=5+Math.random()*90,s=2+Math.random()*4,d=4+Math.random()*7,c=emColors[i%emColors.length]; h+='<div class="ember" style="left:'+x+'%;width:'+s+'px;height:'+s+'px;background:'+c+';box-shadow:0 0 '+(s*2)+'px '+c+';animation-delay:'+(Math.random()*d)+'s;animation-duration:'+d+'s;"></div>'; }
         h += '</div>';
         bgEl.innerHTML = h;
     } else if (t.bgEffect === 'iso') {
-        bgEl.innerHTML = '<div class="iso-bg"></div><div class="iso-cube"></div><div class="iso-cube"></div>';
+        bgEl.innerHTML = '<div class="iso-bg"></div><div class="iso-cube tl"></div><div class="iso-cube br"></div><div class="iso-shadow-plane"><div></div><div></div><div></div><div></div></div>';
     } else if (t.bgEffect === 'parallax') {
         let h = '<div class="dot-grid"></div>';
         h += '<div class="parallax-layer l0"></div>';
