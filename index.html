@@ -436,31 +436,130 @@
     .theme-card.active .theme-name { color: var(--primary); font-weight: 600; }
     /* ===== THEME BACKGROUND EFFECTS ===== */
     .theme-bg-effect {
-        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.4; transition: opacity 0.5s;
+        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5; transition: opacity 0.5s;
+        overflow: hidden;
     }
-    /* Liquid blobs */
-    .theme-bg-effect.liquid .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: blobMove 20s ease-in-out infinite alternate; }
-    .theme-bg-effect.liquid .blob:nth-child(1) { width: 400px; height: 400px; background: rgba(108,92,231,0.15); top: -100px; left: -100px; }
-    .theme-bg-effect.liquid .blob:nth-child(2) { width: 350px; height: 350px; background: rgba(0,206,201,0.12); bottom: -80px; right: -80px; animation-delay: -7s; }
-    .theme-bg-effect.liquid .blob:nth-child(3) { width: 300px; height: 300px; background: rgba(162,155,254,0.1); top: 50%; left: 50%; animation-delay: -14s; }
-    @keyframes blobMove { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.1); } 100% { transform: translate(-20px,30px) scale(0.95); } }
-    /* Lava glow */
-    .theme-bg-effect.lava .blob { position: absolute; border-radius: 50%; filter: blur(100px); animation: lavaPulse 8s ease-in-out infinite alternate; }
-    .theme-bg-effect.lava .blob:nth-child(1) { width: 500px; height: 500px; background: rgba(239,68,68,0.12); bottom: -200px; left: 20%; }
-    .theme-bg-effect.lava .blob:nth-child(2) { width: 400px; height: 400px; background: rgba(249,115,22,0.1); bottom: -150px; right: 10%; animation-delay: -4s; }
-    @keyframes lavaPulse { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-30px) scale(1.08); } }
-    /* Orbit stars */
-    .theme-bg-effect.orbit .star { position: absolute; width: 2px; height: 2px; background: rgba(245,158,11,0.6); border-radius: 50%; animation: starTwinkle 3s ease-in-out infinite; }
-    @keyframes starTwinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-    /* Vortex glow */
-    .theme-bg-effect.vortex .blob { position: absolute; border-radius: 50%; filter: blur(120px); animation: vortexSpin 25s linear infinite; }
-    .theme-bg-effect.vortex .blob:nth-child(1) { width: 600px; height: 600px; background: conic-gradient(from 0deg, rgba(192,132,252,0.1), rgba(232,121,249,0.05), rgba(147,51,234,0.1), rgba(192,132,252,0.05)); top: 50%; left: 50%; transform-origin: center; }
-    @keyframes vortexSpin { to { transform: translate(-50%,-50%) rotate(360deg); } }
-    /* Parallax nebula */
-    .theme-bg-effect.parallax .blob { position: absolute; border-radius: 50%; filter: blur(100px); animation: nebulaFloat 15s ease-in-out infinite alternate; }
-    .theme-bg-effect.parallax .blob:nth-child(1) { width: 500px; height: 500px; background: rgba(6,182,212,0.08); top: -100px; right: -100px; }
-    .theme-bg-effect.parallax .blob:nth-child(2) { width: 400px; height: 400px; background: rgba(165,180,252,0.06); bottom: -100px; left: -100px; animation-delay: -8s; }
-    @keyframes nebulaFloat { 0% { transform: translate(0,0); } 100% { transform: translate(40px,30px); } }
+    /* === LIQUID MORPH — animated mesh gradient blobs === */
+    .theme-bg-effect.liquid .mbg { position: absolute; inset: 0; overflow: hidden; }
+    .theme-bg-effect.liquid .bl {
+        position: absolute; filter: blur(60px); opacity: 0.4;
+        animation: liquidMorph 15s ease-in-out infinite alternate;
+    }
+    .theme-bg-effect.liquid .bl:nth-child(1) { width: 300px; height: 300px; top: 10%; left: 20%; background: #6c5ce7; border-radius: 40% 60% 70% 30%/40% 50% 60% 50%; animation-duration: 12s; }
+    .theme-bg-effect.liquid .bl:nth-child(2) { width: 250px; height: 250px; top: 50%; right: 15%; background: #00cec9; border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; animation-duration: 14s; animation-delay: -4s; }
+    .theme-bg-effect.liquid .bl:nth-child(3) { width: 350px; height: 350px; bottom: 10%; left: 40%; background: #a29bfe; border-radius: 30% 70% 50% 50%/50% 60% 40% 60%; animation-duration: 16s; animation-delay: -8s; }
+    @keyframes liquidMorph {
+        0% { border-radius: 40% 60% 70% 30%/40% 50% 60% 50%; transform: rotate(0deg) scale(1); }
+        25% { border-radius: 60% 40% 30% 70%/50% 60% 40% 50%; }
+        50% { border-radius: 30% 60% 50% 50%/60% 40% 70% 30%; transform: rotate(90deg) scale(1.1); }
+        75% { border-radius: 50% 40% 60% 50%/40% 50% 30% 70%; }
+        100% { border-radius: 60% 30% 40% 70%/50% 40% 60% 50%; transform: rotate(180deg) scale(1); }
+    }
+    /* === 3D VORTEX — tunnel rings + particles === */
+    .theme-bg-effect.vortex .vortex-bg {
+        position: absolute; inset: 0; perspective: 800px; perspective-origin: 50% 50%;
+    }
+    .theme-bg-effect.vortex .tunnel-ring {
+        position: absolute; top: 50%; left: 50%;
+        width: var(--size); height: var(--size);
+        margin-top: calc(var(--size) / -2); margin-left: calc(var(--size) / -2);
+        border: 1px solid rgba(192,132,252,calc(var(--op) * 0.08));
+        border-radius: 50%; animation: tunnelSpin var(--dur) linear infinite;
+    }
+    @keyframes tunnelSpin {
+        0% { transform: translateZ(var(--tz)) rotate(0deg); opacity: calc(var(--op) * 0.5); }
+        100% { transform: translateZ(calc(var(--tz) - 200px)) rotate(90deg); opacity: 0; }
+    }
+    .theme-bg-effect.vortex .vortex-ring-container {
+        position: absolute; inset: 0; perspective: 600px; transform-style: preserve-3d;
+    }
+    .theme-bg-effect.vortex .rp {
+        position: absolute; top: 50%; left: 50%; border-radius: 50%;
+        background: radial-gradient(circle, rgba(192,132,252,0.9), rgba(232,121,249,0.4), transparent);
+        transform: rotate(var(--angle)) translateX(var(--r)) translateY(var(--y));
+        animation: rpFloat var(--dur,6s) ease-in-out infinite alternate;
+    }
+    @keyframes rpFloat {
+        0% { transform: rotate(var(--angle)) translateX(var(--r)) translateY(var(--y)) translateZ(-30px) scale(0.8); opacity: 0.3; }
+        100% { transform: rotate(var(--angle)) translateX(calc(var(--r) + 10px)) translateY(calc(var(--y) - 5px)) translateZ(30px) scale(1.2); opacity: 0.7; }
+    }
+    .theme-bg-effect.vortex .dust {
+        position: absolute; border-radius: 50%; background: rgba(232,121,249,0.5);
+        animation: dustFloat linear infinite;
+    }
+    @keyframes dustFloat {
+        0% { transform: translateY(0) translateX(0); opacity: 0; }
+        20% { opacity: 0.4; } 80% { opacity: 0.3; }
+        100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+    }
+    .theme-bg-effect.vortex .center-glow {
+        position: absolute; top: 50%; left: 50%; width: 300px; height: 300px;
+        margin: -150px 0 0 -150px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(192,132,252,0.08) 0%, rgba(232,121,249,0.03) 40%, transparent 70%);
+        animation: centerPulse 4s ease-in-out infinite;
+    }
+    @keyframes centerPulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.3); opacity: 1; } }
+    /* === 3D ORBIT — stars + ring system + sun === */
+    .theme-bg-effect.orbit .star {
+        position: absolute; border-radius: 50%; background: rgba(245,158,11,0.6);
+        animation: twinkle ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { 0% { opacity: 0.1; transform: scale(0.5); } 100% { opacity: 0.8; transform: scale(1.2); } }
+    .theme-bg-effect.orbit .orbit-system {
+        position: absolute; top: 50%; left: 50%; transform-style: preserve-3d; perspective: 800px;
+    }
+    .theme-bg-effect.orbit .orbit-ring {
+        position: absolute; top: 50%; left: 50%; border: 1px solid rgba(245,158,11,0.04);
+        border-radius: 50%; transform-style: preserve-3d;
+        animation: orbitSpin var(--dur) linear infinite;
+    }
+    .theme-bg-effect.orbit .orbit-ring:nth-child(1) { width: 500px; height: 500px; margin: -250px 0 0 -250px; --dur: 30s; transform: rotateX(75deg) rotateZ(0deg); }
+    .theme-bg-effect.orbit .orbit-ring:nth-child(2) { width: 600px; height: 600px; margin: -300px 0 0 -300px; --dur: 45s; transform: rotateX(80deg) rotateY(20deg); animation-direction: reverse; }
+    .theme-bg-effect.orbit .orbit-ring:nth-child(3) { width: 400px; height: 400px; margin: -200px 0 0 -200px; --dur: 25s; transform: rotateX(70deg) rotateY(-15deg); }
+    @keyframes orbitSpin { 0% { transform: rotateX(75deg) rotateZ(0deg); } 100% { transform: rotateX(75deg) rotateZ(360deg); } }
+    .theme-bg-effect.orbit .op {
+        position: absolute; top: 50%; left: 50%; border-radius: 50%;
+        background: radial-gradient(circle, rgba(245,158,11,0.8), transparent);
+        transform: rotate(var(--a)) translateX(250px);
+        animation: opGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes opGlow { 0% { opacity: 0.2; box-shadow: 0 0 2px rgba(245,158,11,0.3); } 100% { opacity: 0.6; box-shadow: 0 0 8px rgba(245,158,11,0.5); } }
+    .theme-bg-effect.orbit .sun {
+        position: absolute; top: 50%; left: 50%; width: 120px; height: 120px;
+        margin: -60px 0 0 -60px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(245,158,11,0.06) 0%, rgba(251,191,36,0.02) 40%, transparent 70%);
+        animation: sunPulse 5s ease-in-out infinite;
+    }
+    @keyframes sunPulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.3); opacity: 1; } }
+    /* === LAVA — bottom glow embers === */
+    .theme-bg-effect.lava .lava-bg { position: absolute; inset: 0; overflow: hidden; }
+    .theme-bg-effect.lava .ember {
+        position: absolute; bottom: -20px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(239,68,68,0.8), rgba(249,115,22,0.4), transparent);
+        animation: emberRise linear infinite;
+    }
+    @keyframes emberRise {
+        0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.7; }
+        50% { opacity: 0.4; }
+        100% { transform: translateY(-110vh) translateX(40px) scale(0.3); opacity: 0; }
+    }
+    .theme-bg-effect.lava .lava-glow {
+        position: absolute; bottom: -200px; left: 50%; width: 800px; height: 400px;
+        margin-left: -400px; border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(239,68,68,0.1) 0%, rgba(249,115,22,0.05) 40%, transparent 70%);
+        animation: lavaGlowPulse 6s ease-in-out infinite alternate;
+    }
+    @keyframes lavaGlowPulse { 0% { transform: scale(1) translateY(0); opacity: 0.6; } 100% { transform: scale(1.15) translateY(-20px); opacity: 1; } }
+    /* === PARALLAX — deep space nebula layers === */
+    .theme-bg-effect.parallax .nebula-layer { position: absolute; inset: 0; }
+    .theme-bg-effect.parallax .nebula {
+        position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3;
+    }
+    .theme-bg-effect.parallax .p-star {
+        position: absolute; border-radius: 50%; background: rgba(165,180,252,0.5);
+        animation: pStarTwinkle ease-in-out infinite alternate;
+    }
+    @keyframes pStarTwinkle { 0% { opacity: 0.15; transform: scale(0.6); } 100% { opacity: 0.7; transform: scale(1.1); } }
 
 
     /* ===== RESPONSIVE ===== */
@@ -652,15 +751,80 @@ function applyTheme(id) {
     // Background effect
     const bgEl = document.getElementById('theme-bg');
     bgEl.className = 'theme-bg-effect ' + (t.bgEffect || '');
-    if (t.bgEffect === 'orbit') {
-        bgEl.innerHTML = '';
-        for (let i = 0; i < 40; i++) {
-            const s = document.createElement('div'); s.className = 'star';
-            s.style.cssText = 'left:' + (Math.random()*100) + '%;top:' + (Math.random()*100) + '%;animation-delay:' + (Math.random()*3) + 's;width:' + (1+Math.random()*2) + 'px;height:' + (1+Math.random()*2) + 'px;';
-            bgEl.appendChild(s);
+    if (t.bgEffect === 'liquid') {
+        bgEl.innerHTML = '<div class="mbg"><div class="bl"></div><div class="bl"></div><div class="bl"></div></div>';
+    } else if (t.bgEffect === 'vortex') {
+        let html = '<div class="vortex-bg">';
+        // Tunnel rings
+        for (let i = 0; i < 14; i++) {
+            const size = 100 + i * 40;
+            const tz = 100 + i * 120;
+            const dur = 3 + i * 0.8;
+            const op = 1 - i * 0.05;
+            html += '<div class="tunnel-ring" style="--size:'+size+'px;--tz:'+tz+'px;--dur:'+dur+'s;--op:'+op+';"></div>';
         }
-    } else if (t.bgEffect === 'liquid' || t.bgEffect === 'lava' || t.bgEffect === 'vortex' || t.bgEffect === 'parallax') {
-        bgEl.innerHTML = '<div class="blob"></div><div class="blob"></div>' + (t.bgEffect === 'liquid' ? '<div class="blob"></div>' : '');
+        html += '</div><div class="vortex-ring-container">';
+        // Ring particles
+        for (let i = 0; i < 30; i++) {
+            const angle = (i * 12) + Math.random() * 6;
+            const r = 260 + Math.random() * 40;
+            const y = -15 + Math.random() * 30;
+            const dur = 4 + Math.random() * 5;
+            const sz = 1 + Math.random() * 2.5;
+            const op = 0.15 + Math.random() * 0.35;
+            html += '<div class="rp" style="--angle:'+angle+'deg;--r:'+r+'px;--y:'+y+'px;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*8)+'s;animation-duration:'+dur+'s;opacity:'+op+'"></div>';
+        }
+        html += '</div>';
+        // Dust particles
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * 100;
+            const dur = 8 + Math.random() * 12;
+            const sz = 1 + Math.random() * 2;
+            html += '<div class="dust" style="left:'+x+'%;bottom:-10px;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*dur)+'s;animation-duration:'+dur+'s;"></div>';
+        }
+        html += '<div class="center-glow"></div>';
+        bgEl.innerHTML = html;
+    } else if (t.bgEffect === 'orbit') {
+        let html = '';
+        // Stars
+        for (let i = 0; i < 50; i++) {
+            const sz = 0.5 + Math.random() * 2;
+            html += '<div class="star" style="left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*8)+'s;animation-duration:'+(3+Math.random()*5)+'s;"></div>';
+        }
+        // Orbit system
+        html += '<div class="orbit-system"><div class="orbit-ring">';
+        for (let i = 0; i < 20; i++) {
+            const a = i * 18;
+            const sz = 1 + Math.random() * 2;
+            html += '<div class="op" style="--a:'+a+'deg;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*3)+'s;"></div>';
+        }
+        html += '</div><div class="orbit-ring"><div class="op" style="--a:45deg;width:2px;height:2px;"></div><div class="op" style="--a:135deg;width:1.5px;height:1.5px;"></div><div class="op" style="--a:225deg;width:2.5px;height:2.5px;"></div><div class="op" style="--a:315deg;width:1.8px;height:1.8px;"></div></div><div class="orbit-ring"><div class="op" style="--a:0deg;width:2px;height:2px;"></div><div class="op" style="--a:120deg;width:1.5px;height:1.5px;"></div><div class="op" style="--a:240deg;width:2px;height:2px;"></div></div></div>';
+        html += '<div class="sun"></div>';
+        bgEl.innerHTML = html;
+    } else if (t.bgEffect === 'lava') {
+        let html = '<div class="lava-bg">';
+        // Embers rising from bottom
+        for (let i = 0; i < 25; i++) {
+            const x = 10 + Math.random() * 80;
+            const sz = 2 + Math.random() * 4;
+            const dur = 6 + Math.random() * 10;
+            html += '<div class="ember" style="left:'+x+'%;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*dur)+'s;animation-duration:'+dur+'s;"></div>';
+        }
+        html += '</div><div class="lava-glow"></div>';
+        bgEl.innerHTML = html;
+    } else if (t.bgEffect === 'parallax') {
+        let html = '<div class="nebula-layer">';
+        // Nebula blobs
+        html += '<div class="nebula" style="width:500px;height:500px;top:-100px;right:-100px;background:rgba(6,182,212,0.15);animation:nebulaFloat 15s ease-in-out infinite alternate;"></div>';
+        html += '<div class="nebula" style="width:400px;height:400px;bottom:-100px;left:-100px;background:rgba(165,180,252,0.1);animation:nebulaFloat 18s ease-in-out -8s infinite alternate;"></div>';
+        html += '<div class="nebula" style="width:300px;height:300px;top:40%;left:30%;background:rgba(99,102,241,0.08);animation:nebulaFloat 20s ease-in-out -4s infinite alternate;"></div>';
+        html += '</div>';
+        // Stars
+        for (let i = 0; i < 35; i++) {
+            const sz = 0.5 + Math.random() * 1.5;
+            html += '<div class="p-star" style="left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;width:'+sz+'px;height:'+sz+'px;animation-delay:'+(Math.random()*5)+'s;animation-duration:'+(3+Math.random()*4)+'s;"></div>';
+        }
+        bgEl.innerHTML = html;
     } else {
         bgEl.innerHTML = '';
     }
