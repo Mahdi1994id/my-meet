@@ -759,41 +759,69 @@ async function initPeer(){
             video:wantCam?{deviceId:camId?{exact:camId}:undefined}:false
         });
 
+        // ===== STEP 1: Determine room code =====
         if(urlRoom){
+            // URL has ?room=CODE → try to become host, else join as guest
             roomCode=urlRoom;
-            const roomId='room_'+urlRoom;
+            const roomId='room_'+roomCode;
             try{
                 peer=new Peer(roomId,peerConfig);
                 await waitForPeer(peer,5000);
+                // Success → we own this room
                 myId=roomId; isHost=true;
                 peerNames[myId]=myName;
                 setupAfterOpen();
                 return;
             }catch(e){
-                console.log('[Room] taken, joining as guest');
+                // Room taken → join as guest
+                console.log('[Room] '+roomId+' taken, joining as guest');
                 if(peer&&!peer.destroyed)peer.destroy();
-                peer=null;targetPeerId=roomId;
+                peer=null; targetPeerId=roomId;
+            }
+        }else if(urlInvite){
+            // Old ?invite= format
+            targetPeerId=urlInvite;
+        }else{
+            // No URL param → CREATE a new room
+            // Generate room code and register as room_ peer
+            roomCode=myName.toLowerCase().replace(/\s+/g,'_')+'_'+Math.random().toString(36).substr(2,4);
+            const roomId='room_'+roomCode;
+            try{
+                peer=new Peer(roomId,peerConfig);
+                await waitForPeer(peer,5000);
+                myId=roomId; isHost=true;
+                peerNames[myId]=myName;
+                window.history.replaceState({},'',window.location.pathname+'?room='+roomCode);
+                setupAfterOpen();
+                return;
+            }catch(e){
+                // Extremely rare: room code collision, retry with new code
+                console.log('[Room] collision, retrying...');
+                if(peer&&!peer.destroyed)peer.destroy();
+                peer=null;
+                roomCode=myName.toLowerCase().replace(/\s+/g,'_')+'_'+Math.random().toString(36).substr(2,4);
+                const roomId2='room_'+roomCode;
+                peer=new Peer(roomId2,peerConfig);
+                await waitForPeer(peer,5000);
+                myId=roomId2; isHost=true;
+                peerNames[myId]=myName;
+                window.history.replaceState({},'',window.location.pathname+'?room='+roomCode);
+                setupAfterOpen();
+                return;
             }
         }
 
-        if(urlInvite) targetPeerId=urlInvite;
-
-        isHost=!targetPeerId;
-        let savedId=localStorage.getItem('mahdi_call_peer_id');
-        if(!savedId||savedId.startsWith('room_')){
-            savedId='user_'+Math.random().toString(36).substr(2,9)+'_name_'+encodeURIComponent(myName);
-        }else{
-            savedId=savedId.split('_name_')[0]+'_name_'+encodeURIComponent(myName);
-        }
-        myId=savedId;
-        localStorage.setItem('mahdi_call_peer_id',myId);
+        // ===== STEP 2: Guest mode — create random peer ID and connect to host =====
+        isHost=false;
+        const guestId='user_'+Math.random().toString(36).substr(2,9)+'_name_'+encodeURIComponent(myName);
+        myId=guestId;
         peer=new Peer(myId,peerConfig);
         await waitForPeer(peer,8000);
         setupAfterOpen();
 
     }catch(err){
         console.error('[Init] error:',err);
-        if(err.type==='unavailable-id'){alert('این شناسه قبلا گرفته شده. لطفا صفحه را رفرش کنید.');localStorage.removeItem('mahdi_call_peer_id');}
+        if(err.type==='unavailable-id'){alert('خطا در اتصال. لطفا دوباره تلاش کنید.');}
         else alert('خطا: '+err.message);
         btn.disabled=false;
     }
@@ -805,11 +833,6 @@ function setupAfterOpen(){
     addVideoTrack('card-local',myStream,myName+' (شما)',true);
     setupLocalSpeakingDetector(myStream);
     updatePeerCount();
-
-    if(isHost&&!roomCode){
-        roomCode=myName.toLowerCase().replace(/\s+/g,'_')+'_'+Math.random().toString(36).substr(2,3);
-        window.history.replaceState({},'',window.location.pathname+'?room='+roomCode);
-    }
 
     if(targetPeerId&&targetPeerId!==myId){
         showConnStatus('در حال اتصال...','retrying');
