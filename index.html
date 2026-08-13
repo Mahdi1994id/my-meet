@@ -963,6 +963,12 @@ function openSettings() {
 function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
 
 // ==================== UTILS ====================
+function generateRoomCode(){
+    // Generate a short ASCII-only room code (no Persian/special chars — PeerJS requirement)
+    const chars='abcdefghijklmnopqrstuvwxyz0123456789';
+    let code='';for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+    return code;
+}
 function extractNameFromId(pid){const p=pid.split('_name_');if(p.length<2||!p[1])return null;try{return decodeURIComponent(p[1]);}catch(e){return null;}}
 function getPeerName(pid){return peerNames[pid]||extractNameFromId(pid)||'کاربر';}
 function formatTime(ts){const d=new Date(ts);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
@@ -1305,7 +1311,7 @@ async function initPeer(){
         }else{
             // No URL param → CREATE a new room
             // Generate room code and register as room_ peer
-            roomCode=myName.toLowerCase().replace(/\s+/g,'_')+'_'+Math.random().toString(36).substr(2,4);
+            roomCode=generateRoomCode();
             const roomId='room_'+roomCode;
             try{
                 peer=new Peer(roomId,peerConfig);
@@ -1320,7 +1326,7 @@ async function initPeer(){
                 console.log('[Room] collision, retrying...');
                 if(peer&&!peer.destroyed)peer.destroy();
                 peer=null;
-                roomCode=myName.toLowerCase().replace(/\s+/g,'_')+'_'+Math.random().toString(36).substr(2,4);
+                roomCode=generateRoomCode();
                 const roomId2='room_'+roomCode;
                 peer=new Peer(roomId2,peerConfig);
                 await waitForPeer(peer,5000);
@@ -1342,9 +1348,11 @@ async function initPeer(){
 
     }catch(err){
         console.error('[Init] error:',err);
-        if(err.type==='unavailable-id'){alert('خطا در اتصال. لطفا دوباره تلاش کنید.');}
-        else alert('خطا: '+err.message);
         btn.disabled=false;
+        document.getElementById('status-msg').innerText='';
+        if(err.type==='unavailable-id')document.getElementById('status-msg').innerText='خطا در اتصال. لطفا دوباره تلاش کنید.';
+        else if(err.type==='network'||err.type==='server-error')document.getElementById('status-msg').innerText='خطای شبکه. لطفا دوباره تلاش کنید.';
+        else document.getElementById('status-msg').innerText='خطا: '+err.message;
     }
 }
 
