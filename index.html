@@ -254,6 +254,13 @@
             border: 0.5px solid rgba(255,255,255,0.08);
             transition: background 0.3s var(--spring);
         }
+        .host-badge {
+            background: var(--warning); color: #000;
+            font-size: 0.55rem; font-weight: 700;
+            padding: 1px 6px; border-radius: 4px;
+            margin-inline-end: 2px; flex-shrink: 0;
+            letter-spacing: 0.3px;
+        }
         .video-card.speaking .name-tag {
             background: rgba(48,209,88,0.75);
             color: #fff; font-weight: 600;
@@ -632,9 +639,10 @@
 <div id="app">
     <div class="controls-bar">
         <div class="room-badge" onclick="copyRoomLink()" id="room-badge">
-            <i class="fas fa-link"></i><span class="room-text">کپی لینک</span>
+            <i class="fas fa-link"></i><span class="room-text" id="room-badge-text">کپی لینک</span>
         </div>
         <div class="peer-count" id="peer-count"></div>
+        <div id="host-indicator" style="display:none;color:var(--warning);font-size:0.72rem;font-weight:600;white-space:nowrap;flex-shrink:0;"><i class="fas fa-crown" style="margin-inline-end:4px;"></i>میزبان</div>
         <button class="ctrl-btn" id="btn-mic" onclick="toggleAudio()"><i class="fas fa-microphone"></i></button>
         <button class="ctrl-btn" id="btn-cam" onclick="toggleVideo()"><i class="fas fa-video"></i></button>
         <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()"><i class="fas fa-desktop"></i></button>
@@ -1188,7 +1196,27 @@ function updateCardName(pid,name){
     const tag=card.querySelector('.name-tag');if(!tag)return;
     tag.innerHTML='';
     const dotEl=document.createElement('span');dotEl.className='audio-dot';
-    tag.appendChild(dotEl);tag.appendChild(document.createTextNode(name));
+    tag.appendChild(dotEl);
+    // Add host badge if this peer is the host
+    if(pid.startsWith('room_')){
+        const hb=document.createElement('span');hb.className='host-badge';hb.textContent='HOST';
+        tag.appendChild(hb);
+    }
+    tag.appendChild(document.createTextNode(name));
+}
+// Also add host badge to local card when we are host
+function updateLocalCardHost(){
+    const card=document.getElementById('card-local');if(!card)return;
+    const tag=card.querySelector('.name-tag');if(!tag)return;
+    const existing=tag.querySelector('.host-badge');
+    if(isHost&&!existing){
+        const hb=document.createElement('span');hb.className='host-badge';hb.textContent='HOST';
+        const dot=tag.querySelector('.audio-dot');
+        if(dot)tag.insertBefore(hb,dot.nextSibling);
+        else tag.appendChild(hb);
+    }else if(!isHost&&existing){
+        existing.remove();
+    }
 }
 
 function connectToPeerIfNeeded(pid){
@@ -1231,12 +1259,26 @@ async function initPeer(){
         const wantMic=document.getElementById('opt-mic').checked;
         const camId=document.getElementById('video-source').value;
         const savedMicId=localStorage.getItem('mahdi_call_mic');
-        const audioConstraints=wantMic?{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}:false;
-        if(audioConstraints&&savedMicId)audioConstraints.deviceId={exact:savedMicId};
-        myStream=await navigator.mediaDevices.getUserMedia({
-            audio:audioConstraints,
-            video:wantCam?{deviceId:camId?{exact:camId}:undefined}:false
-        });
+        // Always request audio to avoid "at least one required" error
+        const audioConstraints=wantMic?{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}:true;
+        if(wantMic&&savedMicId)audioConstraints.deviceId={exact:savedMicId};
+        try{
+            myStream=await navigator.mediaDevices.getUserMedia({
+                audio:audioConstraints,
+                video:wantCam?{deviceId:camId?{exact:camId}:undefined}:false
+            });
+            // If user didn't want mic, mute the audio track immediately
+            if(!wantMic){myStream.getAudioTracks().forEach(t=>{t.enabled=false;});}
+        }catch(mediaErr){
+            // If media access fails entirely, create a dummy stream
+            console.warn('[Media] getUserMedia failed:',mediaErr.message,'— using dummy stream');
+            const ctx=new AudioContext();
+            const oscillator=ctx.createOscillator();
+            const dst=ctx.createMediaStreamDestination();
+            oscillator.connect(dst);oscillator.start();
+            myStream=dst.stream;
+            if(!wantMic)myStream.getAudioTracks().forEach(t=>{t.enabled=false;});
+        }
 
         // ===== STEP 1: Determine room code =====
         if(urlRoom){
@@ -1312,7 +1354,17 @@ function setupAfterOpen(){
     addVideoTrack('card-local',myStream,myName+' (شما)',true);
     setupLocalSpeakingDetector(myStream);
     updatePeerCount();
-
+    updateLocalCardHost();
+    if(isHost){
+        document.getElementById('host-indicator').style.display='flex';
+        document.getElementById('host-indicator').style.alignItems='center';
+        const badge=document.getElementById('room-badge-text');
+        if(roomCode)badge.innerText='اتاق: '+roomCode;
+        appendSysMsg('شما میزبان هستید — لینک را به دیگران بدهید');
+    }else{
+        const badge=document.getElementById('room-badge-text');
+        if(roomCode)badge.innerText='اتاق: '+roomCode;
+    }
     if(targetPeerId&&targetPeerId!==myId){
         showConnStatus('در حال اتصال...','retrying');
         makeCallWithRetry(targetPeerId,buildCurrentStream(),0,true);
@@ -1356,6 +1408,10 @@ function tryBecomeHost(roomId){
         Object.assign(peerNames, savedNames);
         peerNames[myId]=myName;
         connectedPeers={}; dataConns={};
+        // Show host indicator
+        document.getElementById('host-indicator').style.display='flex';
+        document.getElementById('host-indicator').style.alignItems='center';
+        updateLocalCardHost();
         // Set up handlers on new peer (same as setupAfterOpen)
         peer.on('call',(inc)=>{
             const pid=inc.peer; const old=connectedPeers[pid];
