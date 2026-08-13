@@ -699,19 +699,35 @@ const sentFileIds = {};
 const peerConfig = {
     config: {
         iceServers: [
+            // Google STUN (5 servers)
             {urls:'stun:stun.l.google.com:19302'},
             {urls:'stun:stun1.l.google.com:19302'},
             {urls:'stun:stun2.l.google.com:19302'},
             {urls:'stun:stun3.l.google.com:19302'},
             {urls:'stun:stun4.l.google.com:19302'},
+            // Cloudflare STUN
             {urls:'stun:stun.cloudflare.com:3478'},
+            // Twilio STUN
             {urls:'stun:global.stun.twilio.com:3478'},
+            // Meta/Facebook STUN
+            {urls:'stun:stun.fbsbx.com:3478'},
+            // StunProtocol
             {urls:'stun:stun.stunprotocol.org:3478'},
+            {urls:'stun:stunserver2024.stunprotocol.org:3478'},
+            // Nextcloud / Misc
             {urls:'stun:stun.nextcloud.com:3478'},
             {urls:'stun:stun.86dd.eu:3478'},
-            {urls:'stun:stunserver2024.stunprotocol.org:3478'}
+            // WebRTCNodes
+            {urls:'stun:stun.webrtc.ecl.ntt.com:3478'},
+            // XTRADE
+            {urls:'stun:stun.xtrade-financial.com:3478'},
+            // SINTEL
+            {urls:'stun:stun.sintel.com:3478'},
+            // EXPRESS TURN — free tier (UDP + TCP)
+            {urls:'turn:relay1.expressturn.com:3478',username:'ef2d6b80a16e4a9db9b67f11',credential:'XWkDsV9V7yKq0yRa'},
+            {urls:'turn:relay1.expressturn.com:3480',username:'ef2d6b80a16e4a9db9b67f11',credential:'XWkDsV9V7yKq0yRa'}
         ],
-        iceCandidatePoolSize: 10
+        iceCandidatePoolSize: 25
     }
 };
 
@@ -939,7 +955,7 @@ function openSettings() {
 function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
 
 // ==================== UTILS ====================
-function extractNameFromId(pid){try{return decodeURIComponent(pid.split('_name_')[1])||"کاربر";}catch(e){return "کاربر";}}
+function extractNameFromId(pid){const p=pid.split('_name_');if(p.length<2||!p[1])return null;try{return decodeURIComponent(p[1]);}catch(e){return null;}}
 function getPeerName(pid){return peerNames[pid]||extractNameFromId(pid)||'کاربر';}
 function formatTime(ts){const d=new Date(ts);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
 function formatSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(2)+' GB';}
@@ -1143,7 +1159,10 @@ function setupLocalSpeakingDetector(stream){
 function handleDataConnection(conn){
     conn.on('open',()=>{
         dataConns[conn.peer]=conn;
+        // Send hello with our name immediately
         try{conn.send({type:'hello',name:myName,peerId:myId});}catch(e){}
+        // Also request name back if we don't have it yet
+        try{conn.send({type:'request-name'});}catch(e){}
         const others=Object.keys(connectedPeers).filter(id=>id!==conn.peer);
         if(others.length>0)try{conn.send({type:'peer-list',peers:others});}catch(e){}
     });
@@ -1151,6 +1170,7 @@ function handleDataConnection(conn){
         if(!data||!data.type)return;
         if(data.type==='peer-list')(data.peers||[]).forEach(pid=>connectToPeerIfNeeded(pid));
         else if(data.type==='hello'){peerNames[data.peerId||conn.peer]=data.name;updateCardName(conn.peer,data.name);}
+        else if(data.type==='request-name'){try{conn.send({type:'hello',name:myName,peerId:myId});}catch(e){}}
         else if(data.type==='chat-text')appendChatMsg(data,data.sender===myName);
         else if(data.type.startsWith('chat-file'))handleFileData(data);
     });
@@ -1173,8 +1193,9 @@ function updateCardName(pid,name){
 
 function connectToPeerIfNeeded(pid){
     if(connectedPeers[pid]||pid===myId)return;
-    makeCallWithRetry(pid,buildCurrentStream(),0,false);
+    // Ensure data connection FIRST so name can be exchanged
     if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+    makeCallWithRetry(pid,buildCurrentStream(),0,false);
 }
 
 // ==================== PEER INIT ====================
@@ -1303,6 +1324,10 @@ function setupAfterOpen(){
         connectedPeers[pid]=inc;updatePeerCount();
         inc.answer(buildCurrentStream());setupCallListeners(inc,pid);
         if(old)try{old.close();}catch(e){}
+        // Ensure data connection for name exchange
+        if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+        // Request name if we don't have it
+        if(!peerNames[pid]){setTimeout(()=>{if(!peerNames[pid]&&dataConns[pid])try{dataConns[pid].send({type:'request-name'});}catch(e){}},1500);}
         Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
         appendSysMsg(getPeerName(pid)+' به تماس پیوست');
     });
@@ -1318,6 +1343,7 @@ function setupAfterOpen(){
 function tryBecomeHost(roomId){
     appendSysMsg('میزبان قطع شد — در حال انتقال نقش میزبان...');
     const oldPeer=peer;
+    const savedNames={...peerNames}; // Preserve all known names
     const testPeer=new Peer(roomId,peerConfig);
     let settled=false;
 
@@ -1326,6 +1352,8 @@ function tryBecomeHost(roomId){
         // We are now the host
         try{oldPeer.destroy();}catch(e){}
         peer=testPeer; myId=roomId; isHost=true;
+        // Restore preserved names
+        Object.assign(peerNames, savedNames);
         peerNames[myId]=myName;
         connectedPeers={}; dataConns={};
         // Set up handlers on new peer (same as setupAfterOpen)
@@ -1334,6 +1362,9 @@ function tryBecomeHost(roomId){
             connectedPeers[pid]=inc; updatePeerCount();
             inc.answer(buildCurrentStream()); setupCallListeners(inc,pid);
             if(old)try{old.close();}catch(e){}
+            // Ensure data connection for name exchange
+            if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+            if(!peerNames[pid]){setTimeout(()=>{if(!peerNames[pid]&&dataConns[pid])try{dataConns[pid].send({type:'request-name'});}catch(e){}},1500);}
             Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
             appendSysMsg(getPeerName(pid)+' به تماس پیوست');
         });
@@ -1386,11 +1417,11 @@ function setupCallListeners(call,pid){
 
 function makeCallWithRetry(pid,stream,attempt,showAlert){
     if(pid===myId)return;
-    const maxR=3,maxW=6000;
-    if(showAlert)showConnStatus(attempt>0?'تلاش '+(attempt+1)+'...':'در حال اتصال...','retrying');
+    const maxR=5,maxW=12000;
+    if(showAlert)showConnStatus(attempt>0?'تلاش '+(attempt+1)+' از '+maxR+'...':'در حال اتصال...','retrying');
     const call=peer.call(pid,stream);
     if(!call){
-        if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1500);
+        if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1000);
         else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');return;
     }
     let done=false;
@@ -1400,10 +1431,14 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
         done=true;connectedPeers[pid]=call;updatePeerCount();
         addVideoTrack(pid,rs,getPeerName(pid),false);if(showAlert)hideConnStatus();
         setupCallListeners(call,pid);
+        // Ensure data connection exists for this peer
+        if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+        // If we still don't have the name, request it
+        if(!peerNames[pid]&&dataConns[pid]){setTimeout(()=>{try{dataConns[pid].send({type:'request-name'});}catch(e){}},1000);}
     };
     const fail=(r)=>{
         if(done)return;done=true;try{call.close();}catch(e){}
-        if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1500+attempt*1000);
+        if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1000+attempt*500);
         else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');
     };
     call.on('stream',ok);
@@ -1439,7 +1474,8 @@ function addVideoTrack(id,stream,label,isLocal){
 
 function removeVideoTrack(id){
     const c=document.getElementById(id);if(c)c.remove();
-    delete connectedPeers[id];stopSpeakingDetection(id);delete peerNames[id];
+    delete connectedPeers[id];stopSpeakingDetection(id);
+    // Don't delete peerNames[id] — keep name in case peer reconnects
     if(dataConns[id]){const dc=dataConns[id];try{dc.close();}catch(e){}if(dataConns[id]===dc)delete dataConns[id];}
 }
 
