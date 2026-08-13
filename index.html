@@ -134,12 +134,14 @@
         }
         .room-badge {
             background: var(--primary-glow); color: var(--primary);
-            padding: 5px 12px; border-radius: 20px;
-            font-size: 0.73rem; font-weight: 500;
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 0.78rem; font-weight: 500;
             cursor: pointer; border: 0.5px solid rgba(10,132,255,0.2);
             white-space: nowrap; flex-shrink: 0;
-            display: flex; align-items: center; gap: 5px;
+            display: flex; align-items: center; gap: 6px;
             transition: background 0.25s var(--spring);
+            overflow: hidden; text-overflow: ellipsis;
+            max-width: 180px;
         }
         .room-badge:active { transform: scale(0.95); }
         .room-badge:hover { background: rgba(10,132,255,0.22); }
@@ -195,9 +197,8 @@
         /* ===== VIDEO AREA ===== */
         .main-container {
             flex: 1; overflow: hidden; position: relative;
-            transition: margin-inline-end 0.4s var(--spring);
         }
-        .main-container.shifted { margin-inline-end: var(--chat-w); }
+        /* .main-container.shifted removed — chat overlays, does not push content */
 
         #video-grid {
             display: grid; gap: 4px; padding: 4px;
@@ -282,14 +283,16 @@
             max-width: 40%;
         }
 
-        /* ===== CHAT PANEL — starts BELOW header, never covers it ===== */
+        /* ===== CHAT PANEL — sliding overlay, does not push content ===== */
         .chat-panel {
             position: fixed;
             /* CRITICAL: start below the controls bar */
             top: var(--header-h);
             height: calc(100vh - var(--header-h));
-            inset-inline-end: calc(-1 * var(--chat-w));
+            inset-inline-end: 0;
             width: var(--chat-w);
+            /* Hidden off-screen via transform */
+            transform: translateX(-100%);
             /* Translucent material */
             background: rgba(28, 28, 30, 0.88);
             backdrop-filter: blur(40px) saturate(200%);
@@ -297,9 +300,9 @@
             border-inline-start: 0.5px solid var(--separator);
             z-index: 15; /* Below controls bar (z:20) */
             display: flex; flex-direction: column;
-            transition: inset-inline-end 0.4s var(--spring);
+            transition: transform 0.4s var(--spring);
         }
-        .chat-panel.open { inset-inline-end: 0; }
+        .chat-panel.open { transform: translateX(0); }
         .chat-header {
             padding: 14px 16px;
             border-bottom: 0.5px solid var(--separator);
@@ -312,21 +315,23 @@
         }
         .chat-close {
             background: none; border: none; color: var(--text-secondary);
-            font-size: 1.1rem; cursor: pointer;
-            padding: 4px 8px; border-radius: 6px;
+            width: 32px; height: 32px; z-index: 25; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+            padding: 0; border-radius: 6px;
             transition: color 0.2s, background 0.2s;
         }
         .chat-close:hover { color: var(--text); background: rgba(255,255,255,0.08); }
         .chat-messages {
-            flex: 1; overflow-y: auto; padding: 12px;
-            display: flex; flex-direction: column; gap: 6px;
+            flex: 1; overflow-y: auto; padding: 14px;
+            display: flex; flex-direction: column; gap: 8px;
+            overscroll-behavior: contain;
         }
         .chat-messages::-webkit-scrollbar { width: 3px; }
         .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
         .chat-msg {
-            max-width: 85%; padding: 8px 12px;
-            border-radius: 16px; font-size: 0.82rem;
-            line-height: 1.5; word-break: break-word;
+            max-width: 85%; padding: 10px 14px;
+            border-radius: 16px; font-size: 0.85rem;
+            line-height: 1.55; word-break: break-word;
             animation: msgIn 0.35s var(--spring) both;
         }
         @keyframes msgIn {
@@ -373,13 +378,14 @@
             color: var(--text-secondary); padding: 3px 0;
         }
         .chat-input-area {
-            padding: 10px; border-top: 0.5px solid var(--separator);
-            display: flex; gap: 6px; align-items: center; flex-shrink: 0;
+            padding: 12px; border-top: 0.5px solid var(--separator);
+            display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+            min-height: 56px;
         }
         .chat-input {
-            flex: 1; padding: 9px 14px; background: rgba(0,0,0,0.35);
+            flex: 1; padding: 10px 16px; background: rgba(0,0,0,0.35);
             border: 0.5px solid var(--separator); color: var(--text);
-            border-radius: 20px; font-size: 0.85rem;
+            border-radius: 20px; font-size: 0.88rem;
             min-width: 0; outline: none;
             transition: border-color 0.25s var(--spring);
         }
@@ -573,12 +579,11 @@
         }
         @media (max-width: 767px) {
             :root { --chat-w: 88vw; --header-h: 48px; }
-            .main-container.shifted { margin-inline-end: 0; }
             .chat-panel { width: 88vw; }
             .controls-bar { gap: 5px; padding: 0 8px; }
             .ctrl-btn { width: 34px; height: 34px; font-size: 0.88rem; }
             .ctrl-btn.end-call { width: 38px; height: 38px; }
-            .room-badge { font-size: 0.68rem; padding: 4px 8px; }
+            .room-badge { font-size: 0.7rem; padding: 5px 10px; max-width: 140px; }
             .room-badge .room-text { display: none; }
         }
 
@@ -601,6 +606,13 @@
         <p id="welcome-note">نام خود را وارد کنید و ورود بزنید تا لینک اتاق بگیرید.</p>
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
+        <div id="join-room-section" style="display:none;width:100%;margin-top:6px;">
+            <div style="display:flex;gap:6px;width:100%;">
+                <input type="text" id="join-room-input" placeholder="Paste room code here" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:var(--text);font-size:0.85rem;outline:none;text-align:center;direction:ltr;" autocomplete="off">
+                <button onclick="joinWithCode()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Join Room</button>
+            </div>
+        </div>
+        <div id="or-separator" style="display:none;width:100%;text-align:center;margin:4px 0;color:var(--text-dim);font-size:0.78rem;">— or —</div>
         <div class="row">
             <span>میکروفون</span>
             <label class="switch"><input type="checkbox" id="opt-mic" checked><span class="slider"></span></label>
@@ -672,7 +684,7 @@
 
 <script>
 // ==================== VARIABLES ====================
-let myStream, peer, myId, targetPeerId = null, myName, roomCode = null;
+let myStream, peer, myId, targetPeerId = null, myName, roomCode = null, joinRoomCode = null;
 let isScreenSharing = false, screenStream;
 const connectedPeers = {};
 const dataConns = {};
@@ -687,14 +699,19 @@ const sentFileIds = {};
 const peerConfig = {
     config: {
         iceServers: [
-            {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},
-            {urls:'stun:stun2.l.google.com:19302'},{urls:'stun:stun3.l.google.com:19302'},
-            {urls:'stun:stun4.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
-            {urls:'stun:stun.fbsbx.com:3478'},{urls:'stun:stun.stunprotocol.org:3478'},
-            {urls:'stun:stunserver2024.stunprotocol.org:3478'},{urls:'stun:stun.nextcloud.com:3478'},
+            {urls:'stun:stun.l.google.com:19302'},
+            {urls:'stun:stun1.l.google.com:19302'},
+            {urls:'stun:stun2.l.google.com:19302'},
+            {urls:'stun:stun3.l.google.com:19302'},
+            {urls:'stun:stun4.l.google.com:19302'},
+            {urls:'stun:stun.cloudflare.com:3478'},
+            {urls:'stun:global.stun.twilio.com:3478'},
+            {urls:'stun:stun.stunprotocol.org:3478'},
+            {urls:'stun:stun.nextcloud.com:3478'},
             {urls:'stun:stun.86dd.eu:3478'},
-            {urls:['turn:turn.evan-brass.net:3478','turn:turn.evan-brass.net:3478?transport=tcp'],username:'user',credential:'password'}
-        ],iceCandidatePoolSize:10
+            {urls:'stun:stunserver2024.stunprotocol.org:3478'}
+        ],
+        iceCandidatePoolSize: 10
     }
 };
 
@@ -964,26 +981,39 @@ function endCall(){
         Object.values(dataConns).forEach(c=>{try{c.close();}catch(e){}});
         if(peer&&!peer.destroyed)peer.destroy();
         if(myStream)myStream.getTracks().forEach(t=>t.stop());
-        location.href=window.location.pathname;
+        document.getElementById('app').style.display='none';
+        document.getElementById('settings').style.display='flex';
+        document.getElementById('btn-submit').disabled=false;
+        document.getElementById('status-msg').innerText='';
+        document.getElementById('video-grid').innerHTML='';
+        joinRoomCode=null;
     }
 }
 
 // ==================== ROOM LINK ====================
 function copyRoomLink(){
-    let link;
-    if(roomCode){
-        link=window.location.origin+window.location.pathname+'?room='+roomCode;
-    }else{
-        link=window.location.origin+window.location.pathname+'?invite='+myId;
-    }
-    navigator.clipboard.writeText(link).then(()=>alert('لینک اتاق کپی شد:\n'+link));
+    let text;
+    if(roomCode){ text=roomCode; }else{ text=myId; }
+    navigator.clipboard.writeText(text).then(()=>{
+        const badge=document.getElementById('room-badge');
+        const orig=badge.innerHTML;
+        badge.innerHTML='<i class="fas fa-check"></i><span class="room-text">Copied!</span>';
+        setTimeout(()=>badge.innerHTML=orig,2000);
+    });
+}
+
+function joinWithCode(){
+    const code=document.getElementById('join-room-input').value.trim();
+    if(!code){return;}
+    document.getElementById('target-peer-id').value='';
+    joinRoomCode=code;
+    initPeer();
 }
 
 // ==================== CHAT ====================
 function toggleChat(){
     chatOpen=!chatOpen;
     document.getElementById('chat-panel').classList.toggle('open',chatOpen);
-    document.getElementById('main-container').classList.toggle('shifted',chatOpen);
     if(chatOpen){unreadCount=0;updateChatBadge();scrollChatBottom();}
 }
 function updateChatBadge(){
@@ -1171,8 +1201,9 @@ async function initPeer(){
     document.getElementById('status-msg').innerText='در حال اتصال...';
 
     const urlParams=new URLSearchParams(window.location.search);
-    const urlRoom=urlParams.get('room');
+    let urlRoom=urlParams.get('room');
     const urlInvite=urlParams.get('invite');
+    if(joinRoomCode){urlRoom=joinRoomCode;}
 
     try{
         const wantCam=document.getElementById('camera-select-wrapper').style.display!=='none';
@@ -1283,6 +1314,56 @@ function setupAfterOpen(){
     peer.on('disconnected',()=>{if(!peer.destroyed)peer.reconnect();});
 }
 
+// ==================== HOST MIGRATION ====================
+function tryBecomeHost(roomId){
+    appendSysMsg('میزبان قطع شد — در حال انتقال نقش میزبان...');
+    const oldPeer=peer;
+    const testPeer=new Peer(roomId,peerConfig);
+    let settled=false;
+
+    testPeer.on('open',()=>{
+        if(settled)return; settled=true;
+        // We are now the host
+        try{oldPeer.destroy();}catch(e){}
+        peer=testPeer; myId=roomId; isHost=true;
+        peerNames[myId]=myName;
+        connectedPeers={}; dataConns={};
+        // Set up handlers on new peer (same as setupAfterOpen)
+        peer.on('call',(inc)=>{
+            const pid=inc.peer; const old=connectedPeers[pid];
+            connectedPeers[pid]=inc; updatePeerCount();
+            inc.answer(buildCurrentStream()); setupCallListeners(inc,pid);
+            if(old)try{old.close();}catch(e){}
+            Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
+            appendSysMsg(getPeerName(pid)+' به تماس پیوست');
+        });
+        peer.on('connection',(conn)=>handleDataConnection(conn));
+        peer.on('error',(err)=>{
+            if(err.type==='unavailable-id')alert('خطا در اتصال. لطفا دوباره تلاش کنید.');
+            else if(err.type==='network'||err.type==='server-error')alert('خطای شبکه. رفرش کنید.');
+        });
+        peer.on('disconnected',()=>{if(!peer.destroyed)peer.reconnect();});
+        appendSysMsg('شما حالا میزبان اتاق هستید');
+        updatePeerCount();
+    });
+
+    testPeer.on('error',()=>{
+        if(settled)return; settled=true;
+        try{testPeer.destroy();}catch(e){}
+        // Someone else became host — connect to them
+        appendSysMsg('در حال اتصال به میزبان جدید...');
+        makeCallWithRetry(roomId,buildCurrentStream(),0,true);
+        if(!dataConns[roomId]){const dc=peer.connect(roomId,{reliable:true});handleDataConnection(dc);}
+    });
+
+    setTimeout(()=>{
+        if(settled)return; settled=true;
+        try{testPeer.destroy();}catch(e){}
+        makeCallWithRetry(roomId,buildCurrentStream(),0,true);
+        if(!dataConns[roomId]){const dc=peer.connect(roomId,{reliable:true});handleDataConnection(dc);}
+    },5000);
+}
+
 // ==================== CALL HANDLING ====================
 function setupCallListeners(call,pid){
     call.on('stream',(rs)=>{addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();});
@@ -1292,11 +1373,9 @@ function setupCallListeners(call,pid){
             removeVideoTrack(pid);updatePeerCount();
             appendSysMsg(name+' تماس را ترک کرد');
             if(pid.startsWith('room_')&&!document.hidden){
-                appendSysMsg('در حال اتصال مجدد...');
                 setTimeout(()=>{
                     if(!connectedPeers[pid]){
-                        makeCallWithRetry(pid,buildCurrentStream(),0,false);
-                        if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
+                        tryBecomeHost(pid);
                     }
                 },2000);
             }
@@ -1398,11 +1477,10 @@ async function switchToScreen(pid,old,ss,st){
     }catch(e){}
     showConnStatus('اشتراک صفحه...','retrying');
     const nc=peer.call(pid,ss);if(!nc){showConnStatus('اشتراک صفحه شکست','fail');return;}
-    let d=false;
-    nc.on('stream',(rs)=>{if(d)return;d=true;connectedPeers[pid]=nc;try{old.close();}catch(e){}addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();});
-    nc.on('close',()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}});
-    nc.on('error',()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}});
-    setTimeout(()=>{if(!d){d=true;try{nc.close();}catch(e){}showConnStatus('اشتراک صفحه وصل نشد','fail');}},10000);
+    // Update IMMEDIATELY — before old call's close event arrives
+    connectedPeers[pid]=nc;
+    setupCallListeners(nc,pid);
+    hideConnStatus();
 }
 async function stopScreenSharing(){
     if(!isScreenSharing)return;
@@ -1411,10 +1489,11 @@ async function stopScreenSharing(){
     const ct=myStream.getVideoTracks()[0];
     for(const[pid,call]of Object.entries(connectedPeers)){
         if(ct){try{const pc=call.peerConnection;if(pc&&pc.getSenders){const v=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(v){await v.replaceTrack(ct);continue;}}}catch(e){}}
-        const o=call;const nc=peer.call(pid,myStream);if(!nc)continue;let d=false;
-        nc.on('stream',(rs)=>{if(d)return;d=true;connectedPeers[pid]=nc;try{o.close();}catch(e){}addVideoTrack(pid,rs,getPeerName(pid),false);});
-        nc.on('error',()=>{if(!d){d=true;try{nc.close();}catch(e){}}});
-        setTimeout(()=>{if(!d){d=true;try{nc.close();}catch(e){}}},10000);
+        const o=call;const nc=peer.call(pid,myStream);if(!nc)continue;
+        // Update IMMEDIATELY — before old call's close event arrives
+        connectedPeers[pid]=nc;
+        setupCallListeners(nc,pid);
+        try{o.close();}catch(e){}
     }
     isScreenSharing=false;document.getElementById('btn-screen').classList.remove('active');hideConnStatus();
 }
@@ -1428,6 +1507,11 @@ window.onload=()=>{
     const params=new URLSearchParams(window.location.search);
     const urlRoom=params.get('room');
     const urlInvite=params.get('invite');
+    const isElectron=!!(window.electronAPI);
+    if(isElectron){
+        document.getElementById('join-room-section').style.display='block';
+        document.getElementById('or-separator').style.display='block';
+    }
     if(urlRoom){
         document.getElementById('welcome-note').innerText='اتاق '+urlRoom+' — نام خود را وارد کنید.';
         document.getElementById('welcome-note').style.color='var(--success)';
