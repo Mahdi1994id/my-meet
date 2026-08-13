@@ -260,6 +260,12 @@
             padding: 1px 6px; border-radius: 4px;
             margin-inline-end: 2px; flex-shrink: 0;
             letter-spacing: 0.3px;
+            display: inline-flex; align-items: center; gap: 3px;
+        }
+        .host-badge::before {
+            content: '\f521'; /* crown icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900; font-size: 0.5rem;
         }
         .video-card.speaking .name-tag {
             background: rgba(48,209,88,0.75);
@@ -614,6 +620,7 @@
         <input type="text" id="username-input" placeholder="نام شما" autocomplete="off">
         <input type="hidden" id="target-peer-id">
         <div id="join-room-section" style="display:none;width:100%;margin-top:6px;">
+            <div style="color:var(--text-secondary);font-size:0.75rem;margin-bottom:4px;text-align:center;">کد اتاق یا لینک دعوت را وارد کنید:</div>
             <div style="display:flex;gap:6px;width:100%;">
                 <input type="text" id="join-room-input" placeholder="Paste room code here" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:var(--text);font-size:0.85rem;outline:none;text-align:center;direction:ltr;" autocomplete="off">
                 <button onclick="joinWithCode()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Join Room</button>
@@ -642,7 +649,7 @@
             <i class="fas fa-link"></i><span class="room-text" id="room-badge-text">کپی لینک</span>
         </div>
         <div class="peer-count" id="peer-count"></div>
-        <div id="host-indicator" style="display:none;color:var(--warning);font-size:0.72rem;font-weight:600;white-space:nowrap;flex-shrink:0;"><i class="fas fa-crown" style="margin-inline-end:4px;"></i>میزبان</div>
+        <div id="host-indicator" style="display:none;white-space:nowrap;flex-shrink:0;"><span style="background:var(--warning);color:#000;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-crown" style="font-size:0.6rem;"></i>میزبان</span></div>
         <button class="ctrl-btn" id="btn-mic" onclick="toggleAudio()"><i class="fas fa-microphone"></i></button>
         <button class="ctrl-btn" id="btn-cam" onclick="toggleVideo()"><i class="fas fa-video"></i></button>
         <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()"><i class="fas fa-desktop"></i></button>
@@ -697,6 +704,7 @@ let isScreenSharing = false, screenStream;
 const connectedPeers = {};
 const dataConns = {};
 const peerNames = {};
+let hostPeerId = null; // Explicitly track who is host
 let audioCtx = null;
 const speakingPolls = {};
 let isHost = false;
@@ -1016,25 +1024,48 @@ function endCall(){
         document.getElementById('btn-submit').disabled=false;
         document.getElementById('status-msg').innerText='';
         document.getElementById('video-grid').innerHTML='';
+        document.getElementById('host-indicator').style.display='none';
         joinRoomCode=null;
+        hostPeerId=null;
     }
 }
 
 // ==================== ROOM LINK ====================
 function copyRoomLink(){
-    let text;
-    if(roomCode){ text=roomCode; }else{ text=myId; }
-    navigator.clipboard.writeText(text).then(()=>{
+    let url;
+    if(roomCode){
+        url=window.location.origin+window.location.pathname+'?room='+roomCode;
+    }else{
+        url=window.location.origin+window.location.pathname+'?room='+myId.replace('room_','');
+    }
+    navigator.clipboard.writeText(url).then(()=>{
         const badge=document.getElementById('room-badge');
         const orig=badge.innerHTML;
-        badge.innerHTML='<i class="fas fa-check"></i><span class="room-text">Copied!</span>';
+        badge.innerHTML='<i class="fas fa-check"></i><span class="room-text">کپی شد!</span>';
+        setTimeout(()=>badge.innerHTML=orig,2000);
+    }).catch(()=>{
+        // Fallback: select text in a temp input
+        const inp=document.createElement('input');inp.value=url;document.body.appendChild(inp);inp.select();document.execCommand('copy');inp.remove();
+        const badge=document.getElementById('room-badge');
+        const orig=badge.innerHTML;
+        badge.innerHTML='<i class="fas fa-check"></i><span class="room-text">کپی شد!</span>';
         setTimeout(()=>badge.innerHTML=orig,2000);
     });
 }
 
 function joinWithCode(){
-    const code=document.getElementById('join-room-input').value.trim();
+    let code=document.getElementById('join-room-input').value.trim();
     if(!code){return;}
+    // If user pasted a full URL, extract the room code from it
+    try{
+        const u=new URL(code);
+        const r=u.searchParams.get('room');
+        const inv=u.searchParams.get('invite');
+        if(r){code=r;}
+        else if(inv){code=inv;}
+    }catch(e){
+        // Not a URL, treat as raw room code
+    }
     document.getElementById('target-peer-id').value='';
     joinRoomCode=code;
     initPeer();
@@ -1179,12 +1210,42 @@ function handleDataConnection(conn){
         try{conn.send({type:'request-name'});}catch(e){}
         const others=Object.keys(connectedPeers).filter(id=>id!==conn.peer);
         if(others.length>0)try{conn.send({type:'peer-list',peers:others});}catch(e){}
+        // Send current host info to new peer
+        if(hostPeerId)try{conn.send({type:'host-info',hostPeerId:hostPeerId});}catch(e){}
     });
     conn.on('data',(data)=>{
         if(!data||!data.type)return;
         if(data.type==='peer-list')(data.peers||[]).forEach(pid=>connectToPeerIfNeeded(pid));
-        else if(data.type==='hello'){peerNames[data.peerId||conn.peer]=data.name;updateCardName(conn.peer,data.name);}
+        else if(data.type==='hello'){
+            const incomingName=data.name;
+            const incomingPid=data.peerId||conn.peer;
+            peerNames[incomingPid]=incomingName;
+            updateCardName(conn.peer,incomingName);
+            // === DUPLICATE DETECTION: if same name exists under different peer ID, clean up old ===
+            if(incomingName){
+                for(const [existingPid, existingName] of Object.entries(peerNames)){
+                    if(existingPid!==incomingPid && existingName===incomingName && !existingPid.startsWith('room_')){
+                        // Same person reconnected with new ID — remove old card
+                        console.log('[Duplicate] Same name "'+incomingName+'" found: old='+existingPid+' new='+incomingPid+' — cleaning up old');
+                        removeVideoTrack(existingPid);
+                        delete peerNames[existingPid];
+                        break; // Only remove first match
+                    }
+                }
+            }
+        }
         else if(data.type==='request-name'){try{conn.send({type:'hello',name:myName,peerId:myId});}catch(e){}}
+        else if(data.type==='host-info'){
+            // Received host info from another peer
+            const newHost=data.hostPeerId;
+            if(newHost && newHost!==hostPeerId){
+                const oldHost=hostPeerId;
+                hostPeerId=newHost;
+                // Update all video card badges
+                updateAllHostBadges();
+                if(oldHost && newHost!==myId)appendSysMsg(getPeerName(newHost)+' میزبان جدید شد');
+            }
+        }
         else if(data.type==='chat-text')appendChatMsg(data,data.sender===myName);
         else if(data.type.startsWith('chat-file'))handleFileData(data);
     });
@@ -1204,11 +1265,28 @@ function updateCardName(pid,name){
     const dotEl=document.createElement('span');dotEl.className='audio-dot';
     tag.appendChild(dotEl);
     // Add host badge if this peer is the host
-    if(pid.startsWith('room_')){
-        const hb=document.createElement('span');hb.className='host-badge';hb.textContent='HOST';
+    if(pid===hostPeerId){
+        const hb=document.createElement('span');hb.className='host-badge';hb.textContent=' میزبان';
         tag.appendChild(hb);
     }
     tag.appendChild(document.createTextNode(name));
+}
+// Update all video cards' host badges based on current hostPeerId
+function updateAllHostBadges(){
+    document.querySelectorAll('.video-card').forEach(card=>{
+        const tag=card.querySelector('.name-tag');if(!tag)return;
+        const existing=tag.querySelector('.host-badge');
+        if(card.id===hostPeerId || card.id==='card-local' && isHost){
+            if(!existing){
+                const hb=document.createElement('span');hb.className='host-badge';hb.textContent=' میزبان';
+                const dot=tag.querySelector('.audio-dot');
+                if(dot)tag.insertBefore(hb,dot.nextSibling);
+                else tag.appendChild(hb);
+            }
+        }else{
+            if(existing)existing.remove();
+        }
+    });
 }
 // Also add host badge to local card when we are host
 function updateLocalCardHost(){
@@ -1216,7 +1294,7 @@ function updateLocalCardHost(){
     const tag=card.querySelector('.name-tag');if(!tag)return;
     const existing=tag.querySelector('.host-badge');
     if(isHost&&!existing){
-        const hb=document.createElement('span');hb.className='host-badge';hb.textContent='HOST';
+        const hb=document.createElement('span');hb.className='host-badge';hb.textContent=' میزبان';
         const dot=tag.querySelector('.audio-dot');
         if(dot)tag.insertBefore(hb,dot.nextSibling);
         else tag.appendChild(hb);
@@ -1295,7 +1373,7 @@ async function initPeer(){
                 peer=new Peer(roomId,peerConfig);
                 await waitForPeer(peer,5000);
                 // Success → we own this room
-                myId=roomId; isHost=true;
+                myId=roomId; isHost=true; hostPeerId=myId;
                 peerNames[myId]=myName;
                 setupAfterOpen();
                 return;
@@ -1308,6 +1386,27 @@ async function initPeer(){
         }else if(urlInvite){
             // Old ?invite= format
             targetPeerId=urlInvite;
+        }else if(joinRoomCode){
+            // Join room by code (from join-room-input)
+            const code=joinRoomCode;
+            const isInvite=code.startsWith('room_');
+            if(isInvite){
+                targetPeerId=code;
+            }else{
+                const roomId='room_'+code;
+                try{
+                    peer=new Peer(roomId,peerConfig);
+                    await waitForPeer(peer,5000);
+                    myId=roomId; isHost=true; hostPeerId=myId;
+                    peerNames[myId]=myName;
+                    window.history.replaceState({},'',window.location.pathname+'?room='+code);
+                    setupAfterOpen();
+                    return;
+                }catch(e){
+                    if(peer&&!peer.destroyed)peer.destroy();
+                    peer=null; targetPeerId=roomId;
+                }
+            }
         }else{
             // No URL param → CREATE a new room
             // Generate room code and register as room_ peer
@@ -1316,7 +1415,7 @@ async function initPeer(){
             try{
                 peer=new Peer(roomId,peerConfig);
                 await waitForPeer(peer,5000);
-                myId=roomId; isHost=true;
+                myId=roomId; isHost=true; hostPeerId=myId;
                 peerNames[myId]=myName;
                 window.history.replaceState({},'',window.location.pathname+'?room='+roomCode);
                 setupAfterOpen();
@@ -1330,7 +1429,7 @@ async function initPeer(){
                 const roomId2='room_'+roomCode;
                 peer=new Peer(roomId2,peerConfig);
                 await waitForPeer(peer,5000);
-                myId=roomId2; isHost=true;
+                myId=roomId2; isHost=true; hostPeerId=myId;
                 peerNames[myId]=myName;
                 window.history.replaceState({},'',window.location.pathname+'?room='+roomCode);
                 setupAfterOpen();
@@ -1364,6 +1463,7 @@ function setupAfterOpen(){
     updatePeerCount();
     updateLocalCardHost();
     if(isHost){
+        hostPeerId=myId;
         document.getElementById('host-indicator').style.display='flex';
         document.getElementById('host-indicator').style.alignItems='center';
         const badge=document.getElementById('room-badge-text');
@@ -1388,6 +1488,8 @@ function setupAfterOpen(){
         if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
         // Request name if we don't have it
         if(!peerNames[pid]){setTimeout(()=>{if(!peerNames[pid]&&dataConns[pid])try{dataConns[pid].send({type:'request-name'});}catch(e){}},1500);}
+        // Send host info to new/reconnecting peer
+        if(hostPeerId&&dataConns[pid]){setTimeout(()=>{try{dataConns[pid].send({type:'host-info',hostPeerId:hostPeerId});}catch(e){}},500);}
         Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
         appendSysMsg(getPeerName(pid)+' به تماس پیوست');
     });
@@ -1411,7 +1513,7 @@ function tryBecomeHost(roomId){
         if(settled)return; settled=true;
         // We are now the host
         try{oldPeer.destroy();}catch(e){}
-        peer=testPeer; myId=roomId; isHost=true;
+        peer=testPeer; myId=roomId; isHost=true; hostPeerId=myId;
         // Restore preserved names
         Object.assign(peerNames, savedNames);
         peerNames[myId]=myName;
@@ -1420,6 +1522,7 @@ function tryBecomeHost(roomId){
         document.getElementById('host-indicator').style.display='flex';
         document.getElementById('host-indicator').style.alignItems='center';
         updateLocalCardHost();
+        updateAllHostBadges();
         // Set up handlers on new peer (same as setupAfterOpen)
         peer.on('call',(inc)=>{
             const pid=inc.peer; const old=connectedPeers[pid];
@@ -1429,6 +1532,8 @@ function tryBecomeHost(roomId){
             // Ensure data connection for name exchange
             if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
             if(!peerNames[pid]){setTimeout(()=>{if(!peerNames[pid]&&dataConns[pid])try{dataConns[pid].send({type:'request-name'});}catch(e){}},1500);}
+        // Send host info to new/reconnecting peer
+        if(hostPeerId&&dataConns[pid]){setTimeout(()=>{try{dataConns[pid].send({type:'host-info',hostPeerId:hostPeerId});}catch(e){}},500);}
             Object.entries(dataConns).forEach(([id,c])=>{if(id!==pid)try{c.send({type:'peer-list',peers:[pid]});}catch(e){}});
             appendSysMsg(getPeerName(pid)+' به تماس پیوست');
         });
@@ -1447,6 +1552,7 @@ function tryBecomeHost(roomId){
         try{testPeer.destroy();}catch(e){}
         // Someone else became host — connect to them
         appendSysMsg('در حال اتصال به میزبان جدید...');
+        hostPeerId=roomId; // Update host tracking
         makeCallWithRetry(roomId,buildCurrentStream(),0,true);
         if(!dataConns[roomId]){const dc=peer.connect(roomId,{reliable:true});handleDataConnection(dc);}
     });
@@ -1454,6 +1560,7 @@ function tryBecomeHost(roomId){
     setTimeout(()=>{
         if(settled)return; settled=true;
         try{testPeer.destroy();}catch(e){}
+        hostPeerId=roomId; // Assume someone became host
         makeCallWithRetry(roomId,buildCurrentStream(),0,true);
         if(!dataConns[roomId]){const dc=peer.connect(roomId,{reliable:true});handleDataConnection(dc);}
     },5000);
@@ -1467,9 +1574,10 @@ function setupCallListeners(call,pid){
             const name=getPeerName(pid);
             removeVideoTrack(pid);updatePeerCount();
             appendSysMsg(name+' تماس را ترک کرد');
-            if(pid.startsWith('room_')&&!document.hidden){
+            if(pid===hostPeerId&&!document.hidden){
+                hostPeerId=null; // Clear host tracking
                 setTimeout(()=>{
-                    if(!connectedPeers[pid]){
+                    if(!connectedPeers[pid]&&!hostPeerId){
                         tryBecomeHost(pid);
                     }
                 },2000);
@@ -1608,10 +1716,9 @@ window.onload=()=>{
     const urlRoom=params.get('room');
     const urlInvite=params.get('invite');
     const isElectron=!!(window.electronAPI);
-    if(isElectron){
-        document.getElementById('join-room-section').style.display='block';
-        document.getElementById('or-separator').style.display='block';
-    }
+    // Show join-room section for both browser and Electron
+    document.getElementById('join-room-section').style.display='block';
+    document.getElementById('or-separator').style.display='block';
     if(urlRoom){
         document.getElementById('welcome-note').innerText='اتاق '+urlRoom+' — نام خود را وارد کنید.';
         document.getElementById('welcome-note').style.color='var(--success)';
@@ -1619,6 +1726,8 @@ window.onload=()=>{
     }else if(urlInvite){
         document.getElementById('welcome-note').innerText='شما دعوت شده‌اید! نام خود را وارد کرده و ورود بزنید.';
         document.getElementById('welcome-note').style.color='var(--success)';
+        // Pre-fill the invite code in join-room-input
+        document.getElementById('join-room-input').value=urlInvite;
     }
     navigator.mediaDevices.enumerateDevices().then(devices=>{
         const sel=document.getElementById('video-source');
