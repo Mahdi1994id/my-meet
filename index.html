@@ -1567,8 +1567,47 @@ function tryBecomeHost(roomId){
 }
 
 // ==================== CALL HANDLING ====================
+// Ensure late-arriving tracks (especially audio) are added to remote stream
+const _trackListeners={};
+function ensureTrackListening(call,pid,rs){
+    if(_trackListeners[pid])return; // Already listening
+    _trackListeners[pid]=true;
+    try{
+        const pc=call.peerConnection;
+        if(!pc)return;
+        pc.ontrack=(ev)=>{
+            if(ev.streams&&ev.streams[0]&&ev.track){
+                // Add track to existing stream if not already there
+                const existing=ev.streams[0].getTracks().find(t=>t.id===ev.track.id);
+                if(!existing){
+                    ev.streams[0].addTrack(ev.track);
+                    console.log('[Track] Added late '+ev.track.kind+' track for '+pid);
+                }
+                // Also update video element source to trigger re-render
+                const card=document.getElementById(pid);
+                if(card){
+                    const v=card.querySelector('video');
+                    if(v&&v.srcObject!==ev.streams[0]){v.srcObject=ev.streams[0];v.play().catch(()=>{});}
+                }
+            }
+        };
+        // Log track info for debugging
+        setTimeout(()=>{
+            const receivers=pc.getReceivers?pc.getReceivers():[];
+            const audioCount=receivers.filter(r=>r.track&&r.track.kind==='audio').length;
+            const videoCount=receivers.filter(r=>r.track&&r.track.kind==='video').length;
+            console.log('[Track] '+pid+': '+audioCount+' audio, '+videoCount+' video receivers');
+            if(audioCount===0)console.warn('[Track] WARNING: No audio receiver for '+pid+' — voice may not work');
+        },5000);
+    }catch(e){console.warn('[Track] ensureTrackListening error:',e);}
+}
+
 function setupCallListeners(call,pid){
-    call.on('stream',(rs)=>{addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();});
+    call.on('stream',(rs)=>{
+        addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();
+        // Ensure we catch late-arriving tracks (audio may arrive after video)
+        ensureTrackListening(call,pid,rs);
+    });
     call.on('close',()=>{
         if(connectedPeers[pid]===call){
             const name=getPeerName(pid);
@@ -1589,6 +1628,14 @@ function setupCallListeners(call,pid){
 
 function makeCallWithRetry(pid,stream,attempt,showAlert){
     if(pid===myId)return;
+    // Verify stream has audio before calling
+    if(stream){
+        const audioTracks=stream.getAudioTracks().filter(t=>t.enabled);
+        const videoTracks=stream.getVideoTracks().filter(t=>t.enabled);
+        console.log('[Call] Calling '+pid+' with '+audioTracks.length+' audio, '+videoTracks.length+' video tracks');
+    }else{
+        console.warn('[Call] No stream to call '+pid+' with!');
+    }
     const maxR=5,maxW=12000;
     if(showAlert)showConnStatus(attempt>0?'تلاش '+(attempt+1)+' از '+maxR+'...':'در حال اتصال...','retrying');
     const call=peer.call(pid,stream);
@@ -1603,6 +1650,8 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
         done=true;connectedPeers[pid]=call;updatePeerCount();
         addVideoTrack(pid,rs,getPeerName(pid),false);if(showAlert)hideConnStatus();
         setupCallListeners(call,pid);
+        // Ensure we catch late-arriving tracks
+        ensureTrackListening(call,pid,rs);
         // Ensure data connection exists for this peer
         if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
         // If we still don't have the name, request it
@@ -1647,6 +1696,7 @@ function addVideoTrack(id,stream,label,isLocal){
 function removeVideoTrack(id){
     const c=document.getElementById(id);if(c)c.remove();
     delete connectedPeers[id];stopSpeakingDetection(id);
+    delete _trackListeners[id]; // Clean up track listener
     // Don't delete peerNames[id] — keep name in case peer reconnects
     if(dataConns[id]){const dc=dataConns[id];try{dc.close();}catch(e){}if(dataConns[id]===dc)delete dataConns[id];}
 }
