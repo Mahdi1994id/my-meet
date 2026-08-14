@@ -711,6 +711,8 @@ let isHost = false;
 let chatOpen = false, unreadCount = 0;
 const fileReceivers = {};
 const sentFileIds = {};
+const _pendingCalls = new Set(); // Prevent duplicate outgoing calls
+const _trackListeners = {};
 
 const peerConfig = {
     config: {
@@ -1304,7 +1306,8 @@ function updateLocalCardHost(){
 }
 
 function connectToPeerIfNeeded(pid){
-    if(connectedPeers[pid]||pid===myId)return;
+    if(connectedPeers[pid]||pid===myId||_pendingCalls.has(pid))return;
+    _pendingCalls.add(pid);
     // Ensure data connection FIRST so name can be exchanged
     if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
     makeCallWithRetry(pid,buildCurrentStream(),0,false);
@@ -1481,6 +1484,8 @@ function setupAfterOpen(){
 
     peer.on('call',(inc)=>{
         const pid=inc.peer;const old=connectedPeers[pid];
+        // Cancel any pending outgoing call to this peer (avoid duplicate calls)
+        _pendingCalls.delete(pid);
         connectedPeers[pid]=inc;updatePeerCount();
         inc.answer(buildCurrentStream());setupCallListeners(inc,pid);
         if(old)try{old.close();}catch(e){}
@@ -1526,6 +1531,8 @@ function tryBecomeHost(roomId){
         // Set up handlers on new peer (same as setupAfterOpen)
         peer.on('call',(inc)=>{
             const pid=inc.peer; const old=connectedPeers[pid];
+            // Cancel any pending outgoing call to this peer (avoid duplicate calls)
+            _pendingCalls.delete(pid);
             connectedPeers[pid]=inc; updatePeerCount();
             inc.answer(buildCurrentStream()); setupCallListeners(inc,pid);
             if(old)try{old.close();}catch(e){}
@@ -1568,7 +1575,6 @@ function tryBecomeHost(roomId){
 
 // ==================== CALL HANDLING ====================
 // Ensure late-arriving tracks (especially audio) are added to remote stream
-const _trackListeners={};
 function ensureTrackListening(call,pid,rs){
     if(_trackListeners[pid])return; // Already listening
     _trackListeners[pid]=true;
@@ -1640,14 +1646,15 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
     if(showAlert)showConnStatus(attempt>0?'تلاش '+(attempt+1)+' از '+maxR+'...':'در حال اتصال...','retrying');
     const call=peer.call(pid,stream);
     if(!call){
+        _pendingCalls.delete(pid);
         if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1000);
         else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');return;
     }
     let done=false;
     const ok=(rs)=>{
         if(done)return;
-        if(connectedPeers[pid]&&connectedPeers[pid]!==call){done=true;try{call.close();}catch(e){}return;}
-        done=true;connectedPeers[pid]=call;updatePeerCount();
+        if(connectedPeers[pid]&&connectedPeers[pid]!==call){done=true;_pendingCalls.delete(pid);try{call.close();}catch(e){}return;}
+        done=true;_pendingCalls.delete(pid);connectedPeers[pid]=call;updatePeerCount();
         addVideoTrack(pid,rs,getPeerName(pid),false);if(showAlert)hideConnStatus();
         setupCallListeners(call,pid);
         // Ensure we catch late-arriving tracks
@@ -1658,7 +1665,7 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
         if(!peerNames[pid]&&dataConns[pid]){setTimeout(()=>{try{dataConns[pid].send({type:'request-name'});}catch(e){}},1000);}
     };
     const fail=(r)=>{
-        if(done)return;done=true;try{call.close();}catch(e){}
+        if(done)return;done=true;_pendingCalls.delete(pid);try{call.close();}catch(e){}
         if(attempt<maxR-1)setTimeout(()=>makeCallWithRetry(pid,stream,attempt+1,showAlert),1000+attempt*500);
         else if(showAlert)showConnStatus('اتصال برقرار نشد','fail');
     };
@@ -1697,6 +1704,7 @@ function removeVideoTrack(id){
     const c=document.getElementById(id);if(c)c.remove();
     delete connectedPeers[id];stopSpeakingDetection(id);
     delete _trackListeners[id]; // Clean up track listener
+    _pendingCalls.delete(id); // Clean up pending call
     // Don't delete peerNames[id] — keep name in case peer reconnects
     if(dataConns[id]){const dc=dataConns[id];try{dc.close();}catch(e){}if(dataConns[id]===dc)delete dataConns[id];}
 }
