@@ -1487,6 +1487,9 @@ function setupAfterOpen(){
         // Cancel any pending outgoing call to this peer (avoid duplicate calls)
         _pendingCalls.delete(pid);
         connectedPeers[pid]=inc;updatePeerCount();
+        // IMPORTANT: Set up track listening BEFORE answering to catch all tracks
+        delete _trackListeners[pid];
+        ensureTrackListening(inc,pid);
         inc.answer(buildCurrentStream());setupCallListeners(inc,pid);
         if(old)try{old.close();}catch(e){}
         // Ensure data connection for name exchange
@@ -1534,6 +1537,9 @@ function tryBecomeHost(roomId){
             // Cancel any pending outgoing call to this peer (avoid duplicate calls)
             _pendingCalls.delete(pid);
             connectedPeers[pid]=inc; updatePeerCount();
+            // IMPORTANT: Set up track listening BEFORE answering
+            delete _trackListeners[pid];
+            ensureTrackListening(inc,pid);
             inc.answer(buildCurrentStream()); setupCallListeners(inc,pid);
             if(old)try{old.close();}catch(e){}
             // Ensure data connection for name exchange
@@ -1574,45 +1580,88 @@ function tryBecomeHost(roomId){
 }
 
 // ==================== CALL HANDLING ====================
-// Ensure late-arriving tracks (especially audio) are added to remote stream
-function ensureTrackListening(call,pid,rs){
-    if(_trackListeners[pid])return; // Already listening
+// Ensure ALL tracks (especially late-arriving audio) are captured and played.
+// Uses addEventListener (NOT ontrack=) to avoid replacing PeerJS internal handler.
+// Rebuilds a fresh MediaStream from pc.getReceivers() so video element always has all tracks.
+function ensureTrackListening(call,pid){
+    if(_trackListeners[pid])return;
     _trackListeners[pid]=true;
     try{
         const pc=call.peerConnection;
         if(!pc)return;
-        pc.ontrack=(ev)=>{
-            if(ev.streams&&ev.streams[0]&&ev.track){
-                // Add track to existing stream if not already there
-                const existing=ev.streams[0].getTracks().find(t=>t.id===ev.track.id);
-                if(!existing){
-                    ev.streams[0].addTrack(ev.track);
-                    console.log('[Track] Added late '+ev.track.kind+' track for '+pid);
-                }
-                // Also update video element source to trigger re-render
+        // Use addEventListener to NOT replace PeerJS's internal pc.ontrack handler
+        const rebuildStream=()=>{
+            try{
+                const receivers=pc.getReceivers?pc.getReceivers():[];
+                if(receivers.length===0)return;
+                const newStream=new MediaStream();
+                receivers.forEach(r=>{if(r.track)newStream.addTrack(r.track);});
                 const card=document.getElementById(pid);
                 if(card){
                     const v=card.querySelector('video');
-                    if(v&&v.srcObject!==ev.streams[0]){v.srcObject=ev.streams[0];v.play().catch(()=>{});}
+                    if(v){v.srcObject=newStream;v.play().catch(()=>{});}
                 }
-            }
+                const aCount=receivers.filter(r=>r.track&&r.track.kind==='audio').length;
+                const vCount=receivers.filter(r=>r.track&&r.track.kind==='video').length;
+                console.log('[Track] '+pid+': rebuilt stream with '+aCount+' audio, '+vCount+' video tracks');
+            }catch(e){}
         };
-        // Log track info for debugging
-        setTimeout(()=>{
-            const receivers=pc.getReceivers?pc.getReceivers():[];
-            const audioCount=receivers.filter(r=>r.track&&r.track.kind==='audio').length;
-            const videoCount=receivers.filter(r=>r.track&&r.track.kind==='video').length;
-            console.log('[Track] '+pid+': '+audioCount+' audio, '+videoCount+' video receivers');
-            if(audioCount===0)console.warn('[Track] WARNING: No audio receiver for '+pid+' — voice may not work');
-        },5000);
+        pc.addEventListener('track',(ev)=>{
+            console.log('[Track] track event for '+pid+': kind='+ev.track.kind);
+            // Small delay to let PeerJS process the event first, then rebuild
+            setTimeout(rebuildStream,150);
+        });
+        // Also do an initial rebuild after connection is established
+        setTimeout(rebuildStream,2000);
+        setTimeout(rebuildStream,5000);
     }catch(e){console.warn('[Track] ensureTrackListening error:',e);}
 }
+
+// Periodic audio health check — forces stream rebuild every 4s
+setInterval(()=>{
+    for(const [pid,call] of Object.entries(connectedPeers)){
+        try{
+            const pc=call.peerConnection;
+            if(!pc||!pc.getReceivers)continue;
+            const receivers=pc.getReceivers();
+            const allTracks=receivers.filter(r=>r.track).map(r=>r.track);
+            if(allTracks.length===0)continue;
+            const card=document.getElementById(pid);
+            if(!card)continue;
+            const v=card.querySelector('video');
+            if(!v)continue;
+            // Compare by track IDs, not object reference
+            const curTracks=v.srcObject?v.srcObject.getTracks():[];
+            const curIds=new Set(curTracks.map(t=>t.id));
+            const newIds=new Set(allTracks.map(t=>t.id));
+            let changed=curIds.size!==newIds.size;
+            if(!changed){for(const id of newIds){if(!curIds.has(id)){changed=true;break;}}}
+            if(changed){
+                const newStream=new MediaStream();
+                allTracks.forEach(t=>newStream.addTrack(t));
+                v.srcObject=newStream;
+                v.play().catch(()=>{});
+                console.log('[Health] Refreshed stream for '+pid+': '+allTracks.length+' tracks (was '+curIds.size+')');
+            }
+        }catch(e){}
+    }
+},4000);
 
 function setupCallListeners(call,pid){
     call.on('stream',(rs)=>{
         addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();
-        // Ensure we catch late-arriving tracks (audio may arrive after video)
-        ensureTrackListening(call,pid,rs);
+        // Track listener already set up BEFORE answer() — just do an extra rebuild here
+        setTimeout(()=>{
+            try{
+                const pc=call.peerConnection;
+                if(!pc)return;
+                const receivers=pc.getReceivers?pc.getReceivers():[];
+                const newStream=new MediaStream();
+                receivers.forEach(r=>{if(r.track)newStream.addTrack(r.track);});
+                const card=document.getElementById(pid);
+                if(card){const v=card.querySelector('video');if(v){v.srcObject=newStream;v.play().catch(()=>{});}}
+            }catch(e){}
+        },300);
     });
     call.on('close',()=>{
         if(connectedPeers[pid]===call){
@@ -1655,10 +1704,10 @@ function makeCallWithRetry(pid,stream,attempt,showAlert){
         if(done)return;
         if(connectedPeers[pid]&&connectedPeers[pid]!==call){done=true;_pendingCalls.delete(pid);try{call.close();}catch(e){}return;}
         done=true;_pendingCalls.delete(pid);connectedPeers[pid]=call;updatePeerCount();
+        // Ensure track listening is set up for outgoing calls too
+        if(!_trackListeners[pid])ensureTrackListening(call,pid);
         addVideoTrack(pid,rs,getPeerName(pid),false);if(showAlert)hideConnStatus();
         setupCallListeners(call,pid);
-        // Ensure we catch late-arriving tracks
-        ensureTrackListening(call,pid,rs);
         // Ensure data connection exists for this peer
         if(!dataConns[pid]){const dc=peer.connect(pid,{reliable:true});handleDataConnection(dc);}
         // If we still don't have the name, request it
