@@ -701,8 +701,8 @@
 // ==================== VARIABLES ====================
 let myStream, peer, myId, targetPeerId = null, myName, roomCode = null, joinRoomCode = null;
 let isScreenSharing = false, screenStream;
-const connectedPeers = {};
-const dataConns = {};
+let connectedPeers = {};
+let dataConns = {};
 const peerNames = {};
 let hostPeerId = null; // Explicitly track who is host
 let audioCtx = null;
@@ -745,7 +745,7 @@ const peerConfig = {
             {urls:'turn:relay1.expressturn.com:3478',username:'ef2d6b80a16e4a9db9b67f11',credential:'XWkDsV9V7yKq0yRa'},
             {urls:'turn:relay1.expressturn.com:3480',username:'ef2d6b80a16e4a9db9b67f11',credential:'XWkDsV9V7yKq0yRa'}
         ],
-        iceCandidatePoolSize: 25
+        iceCandidatePoolSize: 4
     }
 };
 
@@ -987,6 +987,20 @@ function getNameColor(n){const c=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff92
 function ab2b64(buf){const b=new Uint8Array(buf);let s='';for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
 function b642ab(b64){const s=atob(b64);const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b.buffer;}
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function isPeerAlive(pid){
+    const c=connectedPeers[pid];
+    if(c){
+        try{
+            const pc=c.peerConnection;
+            const st=pc?(pc.connectionState||pc.iceConnectionState):null;
+            if(st==='failed'||st==='closed'||st==='disconnected')return false;
+            if(st==='connected'||st==='completed')return true;
+            if(c.open&&!c.closed)return true;
+        }catch(e){}
+    }
+    return false;
+}
 function showConnStatus(t,type){let el=document.getElementById('conn-indicator');if(!el){el=document.createElement('div');el.id='conn-indicator';el.className='conn-status';document.querySelector('.controls-bar').appendChild(el);}el.className='conn-status '+type;el.innerText=t;}
 function hideConnStatus(){const el=document.getElementById('conn-indicator');if(el)el.remove();}
 
@@ -1029,6 +1043,8 @@ function endCall(){
         document.getElementById('host-indicator').style.display='none';
         joinRoomCode=null;
         hostPeerId=null;
+        localActive=false;
+        try{window.history.replaceState({},'',window.location.pathname);}catch(e){}
     }
 }
 
@@ -1104,7 +1120,7 @@ function appendFileMsg(data,isSelf,url){
     const div=document.createElement('div');
     div.className='chat-msg '+(isSelf?'self':'other');
     let h='<div class="sender">'+escHtml(data.sender)+'</div><div class="chat-file-box"><div class="fname"><i class="fas fa-file"></i> '+escHtml(data.fileName)+'</div><div class="fsize">'+formatSize(data.fileSize)+'</div>';
-    if(url)h+='<a class="fbtn" href="'+url+'" download="'+escHtml(data.fileName)+'">دانلود</a>';
+    if(url)h+='<a class="fbtn" href="'+url+'" download="'+escAttr(data.fileName)+'">دانلود</a>';
     h+='</div><div class="time">'+formatTime(data.time||Date.now())+'</div>';
     div.innerHTML=h;box.appendChild(div);
     if(!chatOpen){unreadCount++;updateChatBadge();}else scrollChatBottom();
@@ -1226,8 +1242,8 @@ function handleDataConnection(conn){
             // === DUPLICATE DETECTION: if same name exists under different peer ID, clean up old ===
             if(incomingName){
                 for(const [existingPid, existingName] of Object.entries(peerNames)){
-                    if(existingPid!==incomingPid && existingName===incomingName && !existingPid.startsWith('room_')){
-                        // Same person reconnected with new ID — remove old card
+                    if(existingPid!==incomingPid && existingName===incomingName && !existingPid.startsWith('room_') && !isPeerAlive(existingPid)){
+                        // Same person reconnected with new ID (old connection is dead) — remove old card
                         console.log('[Duplicate] Same name "'+incomingName+'" found: old='+existingPid+' new='+incomingPid+' — cleaning up old');
                         removeVideoTrack(existingPid);
                         delete peerNames[existingPid];
@@ -1253,9 +1269,16 @@ function handleDataConnection(conn){
     });
     conn.on('close',()=>{
         if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];
-        // Fallback: if media call didn't fire close, clean up video card after delay
+        // Fallback: if media call didn't fire close, clean up video card after delay.
+        // Only remove if the media connection is NOT alive — a transient data-channel
+        // close must never kick out a live participant.
         const pid=conn.peer;
-        setTimeout(()=>{if(connectedPeers[pid]||document.getElementById(pid)){removeVideoTrack(pid);updatePeerCount();appendSysMsg(getPeerName(pid)+' از تماس خارج شد');}},3000);
+        setTimeout(()=>{
+            if(document.getElementById(pid)&&!isPeerAlive(pid)){
+                removeVideoTrack(pid);updatePeerCount();
+                appendSysMsg(getPeerName(pid)+' از تماس خارج شد');
+            }
+        },3000);
     });
     conn.on('error',()=>{if(dataConns[conn.peer]===conn)delete dataConns[conn.peer];});
 }
@@ -1647,7 +1670,25 @@ setInterval(()=>{
     }
 },4000);
 
+// Cap outbound video bitrate so the mesh stays usable with 4-10 participants
+// on normal home internet (each peer uploads N-1 streams).
+function capOutgoingBitrate(call){
+    try{
+        const pc=call.peerConnection;if(!pc||!pc.getSenders)return;
+        pc.getSenders().forEach(s=>{
+            if(s.track&&s.track.kind==='video'){
+                const p=s.getParameters();
+                p.encodings=(p.encodings&&p.encodings.length)?p.encodings:[{}];
+                p.encodings[0].maxBitrate=400000;
+                s.setParameters(p).catch(()=>{});
+            }
+        });
+    }catch(e){}
+}
+
 function setupCallListeners(call,pid){
+    capOutgoingBitrate(call);
+    setTimeout(()=>capOutgoingBitrate(call),800);
     call.on('stream',(rs)=>{
         addVideoTrack(pid,rs,getPeerName(pid),false);hideConnStatus();
         // Track listener already set up BEFORE answer() — just do an extra rebuild here
@@ -1668,7 +1709,7 @@ function setupCallListeners(call,pid){
             const name=getPeerName(pid);
             removeVideoTrack(pid);updatePeerCount();
             appendSysMsg(name+' تماس را ترک کرد');
-            if(pid===hostPeerId&&!document.hidden){
+            if(pid===hostPeerId){
                 hostPeerId=null; // Clear host tracking
                 setTimeout(()=>{
                     if(!connectedPeers[pid]&&!hostPeerId){
