@@ -825,7 +825,7 @@ let audioCtx=null, analysers={}, speakingLoopOn=false;
 let fileReceivers={}, sentFileIds={};
 let syncChain=Promise.resolve();
 
-const API={ async req(path,opt={}){ const o={headers:{'Content-Type':'application/json'},...opt}; if(o.body&&typeof o.body!=='string')o.body=JSON.stringify(o.body); const r=await fetch(path,o); let d=null; try{d=await r.json();}catch(e){} if(!r.ok){const err=new Error((d&&(d.errorDescription||d.error||d.message))||('HTTP '+r.status)); err.status=r.status; err.data=d; throw err;} return d; } };
+if(!self.API_BASE)self.API_BASE=(location.host==='zumi-sfu.mahdi1373id.workers.dev')?'':'https://zumi-sfu.mahdi1373id.workers.dev'; const API={ async req(path,opt={}){ const o={headers:{'Content-Type':'application/json'},...opt}; if(o.body&&typeof o.body!=='string')o.body=JSON.stringify(o.body); const r=await fetch(self.API_BASE+path,o); let d=null; try{d=await r.json();}catch(e){} if(!r.ok){const err=new Error((d&&(d.errorDescription||d.error||d.message))||('HTTP '+r.status)); err.status=r.status; err.data=d; throw err;} return d; } };
 
 // ==================== WEBRTC CORE ====================
 function newPc(){ return new RTCPeerConnection({ iceServers: iceServers || [{urls:'stun:stun.cloudflare.com:3478'}] }); }
@@ -1217,7 +1217,7 @@ function startSpeakingLoop(){
 }
 
 // ==================== SIGNALING (WebSocket) ====================
-function wsUrl(){ const proto=location.protocol==='https:'?'wss:':'ws:'; return proto+'//'+location.host+'/api/room/'+roomCode+'/ws'; }
+function wsUrl(){ if(self.API_BASE)return self.API_BASE.replace('http','ws')+'/api/room/'+roomCode+'/ws'; const proto=location.protocol==='https:'?'wss:':'ws:'; return proto+'//'+location.host+'/api/room/'+roomCode+'/ws'; }
 function wsSend(o){ if(ws&&ws.readyState===1){ try{ ws.send(JSON.stringify(o)); }catch(e){} } }
 function sendHb(){ wsSend({type:'heartbeat',pid:myPid,sessionId:pubSid,micOn:!muted,camOn:camOn,screenOn:screenPublishing,screenAudio:screenAudio}); }
 function wsJoin(){ wsSend({type:'join',pid:myPid,name:myName,sessionId:pubSid,micOn:!muted}); }

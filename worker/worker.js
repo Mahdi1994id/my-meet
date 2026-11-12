@@ -6,7 +6,15 @@ import { Room } from "./room.js";
 
 const RTC_BASE = "https://rtc.live.cloudflare.com/v1";
 
-const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
+// هدرهای CORS — تا نسخه GitHub Pages (دامنه github.io) هم بتواند به همین سرور وصل شود
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
+  "access-control-allow-headers": "Content-Type, Authorization",
+  "access-control-max-age": "86400",
+};
+
+const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", ...CORS };
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -32,6 +40,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // preflight مرورگر برای درخواست‌های cross-origin (نسخه GitHub Pages)
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
 
     // صفحه اصلی
     if (path === "/" || path === "/index.html") {
